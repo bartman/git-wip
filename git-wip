@@ -1,0 +1,268 @@
+#!/bin/sh
+#
+# Copyright Bart Trojanowski <bart@jukie.net>
+# 
+# git-wip is a script that will manage Work In Progress (or WIP) branches.
+# WIP branches are mostly throw away but identify points of development
+# between commits.  The intent is to tie this script into your editor so
+# that each time you save your file, the git-wip script captures that
+# state in git.  git-wip also helps you return back to a previous state of
+# development.
+#
+# See also http://github.com/bartman/git-wip
+#
+
+USAGE='[ info | save <message> | log | delete ] [ --editor | --untracked ] [ [--] <file>... ]'
+LONG_USAGE="Manage Work In Progress branches
+
+Commands:
+
+        git wip                   - create a new WIP commit
+        git wip save <message>    - create a new WIP commit with custom message
+        git wip info [<branch>]   - brief WIP info
+        git wip log [<branch>]    - show changes on the WIP branch
+        git wip delete [<branch>] - delete a WIP branch
+
+Options:
+
+        --editor                  - be less verbose, assume called from an editor
+        --untracked               - capture also untracked files
+        --ignored                 - capture also ignored files
+"
+
+SUBDIRECTORY_OK=Yes
+OPTIONS_SPEC=
+. git-sh-setup || . $(git --exec-path)/git-sh-setup || ( echo "git wip needs git to run." ; exit 1 )
+require_work_tree
+
+TMP="$GIT_DIR/.git-wip.$$"
+trap 'rm -f "$TMP-*"' 0
+
+WIP_INDEX="$TMP-INDEX"
+
+WIP_PREFIX=refs/wip/
+WIP_COMMAND=
+WIP_MESSAGE=WIP
+EDITOR_MODE=false
+LS_FILES_EXTRA=
+
+dbg() {
+	if test -n "$WIP_DEBUG"
+	then
+		printf '# %s\n' "$*"
+	fi
+}
+
+cleanup () {
+        rm -f "$TMP-*"
+}
+
+get_work_branch () {
+        ref=$(git symbolic-ref -q HEAD) \
+        || die "git-wip requires a branch"
+
+
+        branch=${ref#refs/heads/}
+        if [ $branch = $ref ] ; then
+                die "git-wip requires a local branch"
+        fi
+
+        echo $branch
+}
+
+get_wip_branch () {
+        return 0
+}
+
+find_changes () {
+        git ls-files --exclude-standard -m $LS_FILES_EXTRA
+}
+
+check_files () {
+        local files=$@
+
+        for f in $files
+        do
+                [ -f "$f" -o -d "$f" ] || die "$f: No such file or directory."
+        done
+}
+
+do_save () {
+        local msg=$1 ; shift
+        local files=$@
+
+        if test ${#files} -eq 0
+        then
+                files=$(find_changes)
+        else
+                check_files $files
+        fi
+
+        dbg "msg=$msg"
+        dbg "files=$files"
+
+        local work_branch=$(get_work_branch)
+        local wip_branch=$WIP_PREFIX$work_branch
+
+        dbg "work_branch=$work_branch"
+        dbg "wip_branch=$wip_branch"
+
+        # enable reflog
+        mkdir -p "$GIT_DIR/logs/$WIP_PREFIX"
+        : >>"$GIT_DIR/logs/$wip_branch"
+
+        if ! work_last=$(git rev-parse --verify $work_branch)
+        then
+                die "'$work_branch' branch has no commits."
+        fi
+
+        dbg "work_last=$work_last"
+
+        if wip_last=$(git rev-parse --quiet --verify $wip_branch)
+        then
+                base=$(git merge-base $wip_last $work_last) \
+                || die "'work_branch' and '$wip_branch' are unrelated."
+
+                if [ $base = $work_last ] ; then
+                        wip_parent=$wip_last
+                else
+                        wip_parent=$work_last
+                fi
+        else
+                wip_parent=$work_last
+        fi
+
+        dbg "wip_parent=$wip_parent"
+
+        new_tree=$( ( rm -f $WIP_INDEX \
+                  && cp -p .git/index $WIP_INDEX \
+                  && export GIT_INDEX_FILE=WIP_INDEX \
+                  && git read-tree -m $wip_parent \
+                  && git add $files \
+                  && git write-tree \
+                  && rm -f "$WIP_INDEX" ) 
+        ) || die "Cannot save the current worktree state."
+
+        dbg "new_tree=$new_tree"
+
+        if git diff-tree --exit-code --quiet $new_tree $wip_parent ; then
+                say "no changes"
+                $EDITOR_MODE && exit 0
+                exit 1
+        fi
+
+        dbg "... has changes"
+
+        new_wip=$(printf '%s\n' "$msg" | git commit-tree $new_tree -p $wip_parent) \
+        || die "Cannot record working tree state"
+
+        dbg "new_wip=$new_wip"
+
+        git update-ref -m "git-wip: $msg" $wip_branch $new_wip
+
+        dbg "SUCCESS"
+}
+
+do_info () {
+        local branch=$1
+
+        die "info not implemented"
+}
+
+do_log () {
+        local branch=$1
+
+        die "log not implemented"
+}
+
+do_delete () {
+        local branch=$1
+
+        die "delete not implemented"
+}
+
+do_help () {
+        local rc=$1
+
+        cat <<END
+Usage: git wip $USAGE
+
+$LONG_USAGE
+END
+        exit $rc
+}
+
+
+if test $# -eq 0
+then
+        dbg "no arguments"
+
+        do_save "WIP"
+        exit $?
+fi
+
+case "$1" in
+save)
+        WIP_COMMAND=$1
+        shift
+        if [ -n "$1" ]
+        then
+                WIP_MESSAGE=$1
+                shift
+        fi
+        ;;
+info|log|delete)
+        WIP_COMMAND=$1
+        shift
+        ;;
+help)
+        do_help 0
+        ;;
+--*)
+        ;;
+*)
+        [ -f "$1" ] || die "Unknow command '$1'."
+        ;;
+esac
+
+while test $# != 0
+do
+        case "$1" in
+        --editor)
+                EDITOR_MODE=true
+                ;;
+
+        --untracked|--ignored)
+                LS_FILES_EXTRA="$LS_FILES_EXTRA $1"
+                ;;
+
+        --)
+                shift
+                break
+                ;;
+        *)
+                [ -f "$1" ] && break
+                die "Unknow option '$1'."
+                ;;
+        esac
+        shift
+done
+
+case $WIP_COMMAND in
+save)
+        do_save "$WIP_MESSAGE" $@
+        ;;
+info)
+        do_info $@
+        ;;
+log)
+        do_log $@
+        ;;
+delete)
+        do_delete $@
+        ;;
+*)
+        usage
+        exit 1
+        ;;
+esac
