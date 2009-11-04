@@ -54,273 +54,273 @@ dbg() {
 }
 
 cleanup () {
-        rm -f "$TMP-*"
+	rm -f "$TMP-*"
 }
 
 get_work_branch () {
-        ref=$(git symbolic-ref -q HEAD) \
-        || die "git-wip requires a branch"
+	ref=$(git symbolic-ref -q HEAD) \
+	|| die "git-wip requires a branch"
 
 
-        branch=${ref#refs/heads/}
-        if [ $branch = $ref ] ; then
-                die "git-wip requires a local branch"
-        fi
+	branch=${ref#refs/heads/}
+	if [ $branch = $ref ] ; then
+		die "git-wip requires a local branch"
+	fi
 
-        echo $branch
+	echo $branch
 }
 
 get_wip_branch () {
-        return 0
+	return 0
 }
 
 check_files () {
-        local files=$@
+	local files=$@
 
-        for f in $files
-        do
-                [ -f "$f" -o -d "$f" ] || die "$f: No such file or directory."
-        done
+	for f in $files
+	do
+		[ -f "$f" -o -d "$f" ] || die "$f: No such file or directory."
+	done
 }
 
 report_no_changes () {
-        if $EDITOR_MODE
-        then
-                say "(git wip: no changes)"
-                exit 0
-        fi
-        die "no changes"
+	if $EDITOR_MODE
+	then
+		say "(git wip: no changes)"
+		exit 0
+	fi
+	die "no changes"
 }
 
 build_new_tree () {
-        local untracked=$1 ; shift
-        local ignored=$1 ; shift
-        local files=$@
+	local untracked=$1 ; shift
+	local ignored=$1 ; shift
+	local files=$@
 
-        (
-        set -e
-        rm -f $WIP_INDEX
-        cp -p $GIT_DIR/index $WIP_INDEX
-        export GIT_INDEX_FILE=$WIP_INDEX
-        git read-tree $wip_parent
-        if [ -n "$files" ]
-        then
-                git add $files
-        else
-                git add -u
-        fi
-        [ -n "$untracked" ] && git add .
-        [ -n "$ignored" ] && git add -f -A .
-        git write-tree
-        rm -f "$WIP_INDEX"
-        )
+	(
+	set -e
+	rm -f $WIP_INDEX
+	cp -p $GIT_DIR/index $WIP_INDEX
+	export GIT_INDEX_FILE=$WIP_INDEX
+	git read-tree $wip_parent
+	if [ -n "$files" ]
+	then
+		git add $files
+	else
+		git add -u
+	fi
+	[ -n "$untracked" ] && git add .
+	[ -n "$ignored" ] && git add -f -A .
+	git write-tree
+	rm -f "$WIP_INDEX"
+	)
 }
 
 do_save () {
-        local msg=$1 ; shift
-        local add_untracked=
-        local add_ignored=
+	local msg=$1 ; shift
+	local add_untracked=
+	local add_ignored=
 
-        while test $# != 0
-        do
-                case "$1" in
-                -e|--editor)
-                        EDITOR_MODE=true
-                        ;;
-                -u|--untracked)
-                        add_untracked=t
-                        ;;
-                -i|--ignored)
-                        add_ignored=t
-                        ;;
-                --)
-                        shift
-                        break
-                        ;;
-                *)
-                        [ -f "$1" ] && break
-                        die "Unknown option '$1'."
-                        ;;
-                esac
-                shift
-        done
-        local files=$@
-        local "add_untracked=$add_untracked"
-        local "add_ignored=$add_ignored"
+	while test $# != 0
+	do
+		case "$1" in
+		-e|--editor)
+			EDITOR_MODE=true
+			;;
+		-u|--untracked)
+			add_untracked=t
+			;;
+		-i|--ignored)
+			add_ignored=t
+			;;
+		--)
+			shift
+			break
+			;;
+		*)
+			[ -f "$1" ] && break
+			die "Unknown option '$1'."
+			;;
+		esac
+		shift
+	done
+	local files=$@
+	local "add_untracked=$add_untracked"
+	local "add_ignored=$add_ignored"
 
-        if test ${#files} -gt 0
-        then
-                check_files $files
-        fi
+	if test ${#files} -gt 0
+	then
+		check_files $files
+	fi
 
-        dbg "msg=$msg"
-        dbg "files=$files"
+	dbg "msg=$msg"
+	dbg "files=$files"
 
-        local work_branch=$(get_work_branch)
-        local wip_branch=$WIP_PREFIX$work_branch
+	local work_branch=$(get_work_branch)
+	local wip_branch=$WIP_PREFIX$work_branch
 
-        dbg "work_branch=$work_branch"
-        dbg "wip_branch=$wip_branch"
+	dbg "work_branch=$work_branch"
+	dbg "wip_branch=$wip_branch"
 
-        # enable reflog
-        mkdir -p "$GIT_DIR/logs/$WIP_PREFIX"
-        : >>"$GIT_DIR/logs/$wip_branch"
+	# enable reflog
+	mkdir -p "$GIT_DIR/logs/$WIP_PREFIX"
+	: >>"$GIT_DIR/logs/$wip_branch"
 
-        if ! work_last=$(git rev-parse --verify $work_branch)
-        then
-                die "'$work_branch' branch has no commits."
-        fi
+	if ! work_last=$(git rev-parse --verify $work_branch)
+	then
+		die "'$work_branch' branch has no commits."
+	fi
 
-        dbg "work_last=$work_last"
+	dbg "work_last=$work_last"
 
-        if wip_last=$(git rev-parse --quiet --verify $wip_branch)
-        then
-                local base=$(git merge-base $wip_last $work_last) \
-                || die "'work_branch' and '$wip_branch' are unrelated."
+	if wip_last=$(git rev-parse --quiet --verify $wip_branch)
+	then
+		local base=$(git merge-base $wip_last $work_last) \
+		|| die "'work_branch' and '$wip_branch' are unrelated."
 
-                if [ $base = $work_last ] ; then
-                        wip_parent=$wip_last
-                else
-                        wip_parent=$work_last
-                fi
-        else
-                wip_parent=$work_last
-        fi
+		if [ $base = $work_last ] ; then
+			wip_parent=$wip_last
+		else
+			wip_parent=$work_last
+		fi
+	else
+		wip_parent=$work_last
+	fi
 
-        dbg "wip_parent=$wip_parent"
+	dbg "wip_parent=$wip_parent"
 
-        new_tree=$( build_new_tree "$add_untracked" "$add_ignored" $files ) \
-        || die "Cannot save the current worktree state."
+	new_tree=$( build_new_tree "$add_untracked" "$add_ignored" $files ) \
+	|| die "Cannot save the current worktree state."
 
-        dbg "new_tree=$new_tree"
+	dbg "new_tree=$new_tree"
 
-        if git diff-tree --exit-code --quiet $new_tree $wip_parent ; then
-                report_no_changes
-        fi
+	if git diff-tree --exit-code --quiet $new_tree $wip_parent ; then
+		report_no_changes
+	fi
 
-        dbg "... has changes"
+	dbg "... has changes"
 
-        new_wip=$(printf '%s\n' "$msg" | git commit-tree $new_tree -p $wip_parent) \
-        || die "Cannot record working tree state"
+	new_wip=$(printf '%s\n' "$msg" | git commit-tree $new_tree -p $wip_parent) \
+	|| die "Cannot record working tree state"
 
-        dbg "new_wip=$new_wip"
+	dbg "new_wip=$new_wip"
 
-        git update-ref -m "git-wip: $msg" $wip_branch $new_wip
+	git update-ref -m "git-wip: $msg" $wip_branch $new_wip
 
-        dbg "SUCCESS"
+	dbg "SUCCESS"
 }
 
 do_info () {
-        local branch=$1
+	local branch=$1
 
-        die "info not implemented"
+	die "info not implemented"
 }
 
 do_log () {
-        local work_branch=$1
-        [ -z $branch ] && work_branch=$(get_work_branch)
-        local wip_branch=$WIP_PREFIX$work_branch
+	local work_branch=$1
+	[ -z $branch ] && work_branch=$(get_work_branch)
+	local wip_branch=$WIP_PREFIX$work_branch
 
-        local git_log="git log"
-        if [ "$1" = --pretty -o "$1" = -p ]
-        then
-                shift
-                git_log="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' --abbrev-commit --date=relative"
-        fi
+	local git_log="git log"
+	if [ "$1" = --pretty -o "$1" = -p ]
+	then
+		shift
+		git_log="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' --abbrev-commit --date=relative"
+	fi
 
-        if ! work_last=$(git rev-parse --verify $work_branch)
-        then
-                die "'$work_branch' branch has no commits."
-        fi
+	if ! work_last=$(git rev-parse --verify $work_branch)
+	then
+		die "'$work_branch' branch has no commits."
+	fi
 
-        if ! wip_last=$(git rev-parse --quiet --verify $wip_branch)
-        then
-                die "'$work_branch' branch has no commits."
-        fi
+	if ! wip_last=$(git rev-parse --quiet --verify $wip_branch)
+	then
+		die "'$work_branch' branch has no commits."
+	fi
 
-        local base=$(git merge-base $wip_last $work_last)
-        case $base in
-        $work_last)
-                range=$work_branch~1..$wip_branch
-                ;;
-        $wip_last)
-                range=$wip_branch~1..$work_branch
-                ;;
-        *) 
-                range=$work_branch...$wip_branch
-                ;;
-        esac
+	local base=$(git merge-base $wip_last $work_last)
+	case $base in
+	$work_last)
+		range=$work_branch~1..$wip_branch
+		;;
+	$wip_last)
+		range=$wip_branch~1..$work_branch
+		;;
+	*) 
+		range=$work_branch...$wip_branch
+		;;
+	esac
 
-        echo $git_log $@ $range | sh
+	echo $git_log $@ $range | sh
 }
 
 do_delete () {
-        local branch=$1
+	local branch=$1
 
-        die "delete not implemented"
+	die "delete not implemented"
 }
 
 do_help () {
-        local rc=$1
+	local rc=$1
 
-        cat <<END
+	cat <<END
 Usage: git wip $USAGE
 
 $LONG_USAGE
 END
-        exit $rc
+	exit $rc
 }
 
 
 if test $# -eq 0
 then
-        dbg "no arguments"
+	dbg "no arguments"
 
-        do_save "WIP"
-        exit $?
+	do_save "WIP"
+	exit $?
 fi
 
 case "$1" in
 save)
-        WIP_COMMAND=$1
-        shift
-        if [ -n "$1" ]
-        then
-                WIP_MESSAGE=$1
-                shift
-        fi
-        ;;
+	WIP_COMMAND=$1
+	shift
+	if [ -n "$1" ]
+	then
+		WIP_MESSAGE=$1
+		shift
+	fi
+	;;
 info|log|delete)
-        WIP_COMMAND=$1
-        shift
-        ;;
+	WIP_COMMAND=$1
+	shift
+	;;
 help)
-        do_help 0
-        ;;
+	do_help 0
+	;;
 --*)
-        ;;
+	;;
 *)
-        [ -f "$1" ] || die "Unknown command '$1'."
-        ;;
+	[ -f "$1" ] || die "Unknown command '$1'."
+	;;
 esac
 
 case $WIP_COMMAND in
 save)
-        do_save "$WIP_MESSAGE" $@
-        ;;
+	do_save "$WIP_MESSAGE" $@
+	;;
 info)
-        do_info $@
-        ;;
+	do_info $@
+	;;
 log)
-        do_log $@
-        ;;
+	do_log $@
+	;;
 delete)
-        do_delete $@
-        ;;
+	do_delete $@
+	;;
 *)
-        usage
-        exit 1
-        ;;
+	usage
+	exit 1
+	;;
 esac
 
 # vim: set noet sw=8
