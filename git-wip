@@ -12,22 +12,23 @@
 # See also http://github.com/bartman/git-wip
 #
 
-USAGE='[ info | save <message> | log | delete ] [ --editor | --untracked ] [ [--] <file>... ]'
+USAGE='[ info | save <message> [ --editor | --untracked ] | log [ --pretty ] | delete ] [ [--] <file>... ]'
 LONG_USAGE="Manage Work In Progress branches
 
 Commands:
-
         git wip                   - create a new WIP commit
         git wip save <message>    - create a new WIP commit with custom message
         git wip info [<branch>]   - brief WIP info
         git wip log [<branch>]    - show changes on the WIP branch
         git wip delete [<branch>] - delete a WIP branch
 
-Options:
-
+Options for save:
         --editor                  - be less verbose, assume called from an editor
         --untracked               - capture also untracked files
         --ignored                 - capture also ignored files
+
+Options for log:
+        -p --pretty               - show a pretty graph
 "
 
 SUBDIRECTORY_OK=Yes
@@ -44,7 +45,6 @@ WIP_PREFIX=refs/wip/
 WIP_COMMAND=
 WIP_MESSAGE=WIP
 EDITOR_MODE=false
-LS_FILES_EXTRA=
 
 dbg() {
 	if test -n "$WIP_DEBUG"
@@ -75,7 +75,7 @@ get_wip_branch () {
 }
 
 find_changes () {
-        git ls-files --exclude-standard --cached -m $LS_FILES_EXTRA
+        git ls-files --exclude-standard --cached -m $@
 }
 
 check_files () {
@@ -98,11 +98,35 @@ report_no_changes () {
 
 do_save () {
         local msg=$1 ; shift
+        local ls_files_extra=
+
+        while test $# != 0
+        do
+                case "$1" in
+                        --editor)
+                        EDITOR_MODE=true
+                        ;;
+
+                        --untracked|--ignored)
+                        ls_files_extra="$LS_FILES_EXTRA $1"
+                        ;;
+
+                        --)
+                        shift
+                        break
+                        ;;
+                        *)
+                        [ -f "$1" ] && break
+                        die "Unknown option '$1'."
+                        ;;
+                esac
+                shift
+        done
         local files=$@
 
         if test ${#files} -eq 0
         then
-                files=$(find_changes)
+                files=$(find_changes ls_files_extra)
                 [ ${#files} -eq 0 ] && report_no_changes
         else
                 check_files $files
@@ -130,7 +154,7 @@ do_save () {
 
         if wip_last=$(git rev-parse --quiet --verify $wip_branch)
         then
-                base=$(git merge-base $wip_last $work_last) \
+                local base=$(git merge-base $wip_last $work_last) \
                 || die "'work_branch' and '$wip_branch' are unrelated."
 
                 if [ $base = $work_last ] ; then
@@ -178,9 +202,41 @@ do_info () {
 }
 
 do_log () {
-        local branch=$1
+        local work_branch=$1
+        [ -z $branch ] && work_branch=$(get_work_branch)
+        local wip_branch=$WIP_PREFIX$work_branch
 
-        die "log not implemented"
+        local git_log="git log"
+        if [ "$1" = --pretty -o "$1" = -p ]
+        then
+                shift
+                git_log="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' --abbrev-commit --date=relative"
+        fi
+
+        if ! work_last=$(git rev-parse --verify $work_branch)
+        then
+                die "'$work_branch' branch has no commits."
+        fi
+
+        if ! wip_last=$(git rev-parse --quiet --verify $wip_branch)
+        then
+                die "'$work_branch' branch has no commits."
+        fi
+
+        local base=$(git merge-base $wip_last $work_last)
+        case $base in
+        $work_last)
+                range=$work_branch~1..$wip_branch
+                ;;
+        $wip_last)
+                range=$wip_branch~1..$work_branch
+                ;;
+        *) 
+                range=$work_branch...$wip_branch
+                ;;
+        esac
+
+        echo $git_log $@ $range | sh
 }
 
 do_delete () {
@@ -229,32 +285,9 @@ help)
 --*)
         ;;
 *)
-        [ -f "$1" ] || die "Unknow command '$1'."
+        [ -f "$1" ] || die "Unknown command '$1'."
         ;;
 esac
-
-while test $# != 0
-do
-        case "$1" in
-        --editor)
-                EDITOR_MODE=true
-                ;;
-
-        --untracked|--ignored)
-                LS_FILES_EXTRA="$LS_FILES_EXTRA $1"
-                ;;
-
-        --)
-                shift
-                break
-                ;;
-        *)
-                [ -f "$1" ] && break
-                die "Unknow option '$1'."
-                ;;
-        esac
-        shift
-done
 
 case $WIP_COMMAND in
 save)
