@@ -141,7 +141,7 @@ do_save () {
         dbg "wip_parent=$wip_parent"
 
         new_tree=$( ( rm -f $WIP_INDEX \
-                  && cp -p .git/index $WIP_INDEX \
+                  && cp -p $GIT_DIR/index $WIP_INDEX \
                   && export GIT_INDEX_FILE=$WIP_INDEX \
                   && git read-tree $wip_parent \
                   && git add $files \
