@@ -78,7 +78,7 @@ so will make it be invoked after every `:w` operation.
 
     augroup git-wip
       autocmd!
-      autocmd BufWritePost * :silent !git wip --editor -- "%"
+      autocmd BufWritePost * :silent !git wip save "WIP from vim" --editor -- "%"
     augroup END
 
 The `--editor` option puts git-wip into a special mode that will make it
