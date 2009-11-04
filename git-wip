@@ -75,7 +75,7 @@ get_wip_branch () {
 }
 
 find_changes () {
-        git ls-files --exclude-standard -m $LS_FILES_EXTRA
+        git ls-files --exclude-standard --cached -m $LS_FILES_EXTRA
 }
 
 check_files () {
@@ -142,8 +142,8 @@ do_save () {
 
         new_tree=$( ( rm -f $WIP_INDEX \
                   && cp -p .git/index $WIP_INDEX \
-                  && export GIT_INDEX_FILE=WIP_INDEX \
-                  && git read-tree -m $wip_parent \
+                  && export GIT_INDEX_FILE=$WIP_INDEX \
+                  && git read-tree $wip_parent \
                   && git add $files \
                   && git write-tree \
                   && rm -f "$WIP_INDEX" ) 
