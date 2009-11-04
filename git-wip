@@ -94,6 +94,12 @@ do_save () {
         if test ${#files} -eq 0
         then
                 files=$(find_changes)
+                if test ${#files} -eq 0
+                then
+                        say "no changes"
+                        $EDITOR_MODE && exit 0
+                        exit 1
+                fi
         else
                 check_files $files
         fi
