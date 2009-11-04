@@ -87,6 +87,15 @@ check_files () {
         done
 }
 
+report_no_changes () {
+        if $EDITOR_MODE
+        then
+                say "(git wip: no changes)"
+                exit 0
+        fi
+        die "no changes"
+}
+
 do_save () {
         local msg=$1 ; shift
         local files=$@
@@ -94,12 +103,7 @@ do_save () {
         if test ${#files} -eq 0
         then
                 files=$(find_changes)
-                if test ${#files} -eq 0
-                then
-                        say "no changes"
-                        $EDITOR_MODE && exit 0
-                        exit 1
-                fi
+                [ ${#files} -eq 0 ] && report_no_changes
         else
                 check_files $files
         fi
@@ -152,9 +156,7 @@ do_save () {
         dbg "new_tree=$new_tree"
 
         if git diff-tree --exit-code --quiet $new_tree $wip_parent ; then
-                say "no changes"
-                $EDITOR_MODE && exit 0
-                exit 1
+                report_no_changes
         fi
 
         dbg "... has changes"
