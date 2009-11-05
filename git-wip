@@ -264,8 +264,6 @@ do_help () {
 	local rc=$1
 
 	cat <<END
-Usage: git wip $USAGE
-
 $LONG_USAGE
 END
 	exit $rc
