@@ -157,7 +157,7 @@ do_save () {
 	dbg "files=$files"
 
 	local work_branch=$(get_work_branch)
-	local wip_branch=$WIP_PREFIX$work_branch
+	local wip_branch="$WIP_PREFIX$work_branch"
 
 	dbg "work_branch=$work_branch"
 	dbg "wip_branch=$wip_branch"
@@ -219,7 +219,7 @@ do_info () {
 do_log () {
 	local work_branch=$1
 	[ -z $branch ] && work_branch=$(get_work_branch)
-	local wip_branch=$WIP_PREFIX$work_branch
+	local wip_branch="$WIP_PREFIX$work_branch"
 
 	local git_log="git log"
 	if [ "$1" = --pretty -o "$1" = -p ]
