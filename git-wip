@@ -163,8 +163,10 @@ do_save () {
 	dbg "wip_branch=$wip_branch"
 
 	# enable reflog
-	mkdir -p "$GIT_DIR/logs/$WIP_PREFIX"
-	: >>"$GIT_DIR/logs/$wip_branch"
+	local wip_branch_file="$GIT_DIR/logs/$wip_branch"
+	dbg "wip_branch_file=$wip_branch_file"
+	mkdir -p $(dirname "$wip_branch_file")
+	: >>"$wip_branch_file"
 
 	if ! work_last=$(git rev-parse --verify $work_branch)
 	then
