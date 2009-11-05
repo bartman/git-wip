@@ -233,25 +233,20 @@ do_log () {
 		die "'$work_branch' branch has no commits."
 	fi
 
+	dbg work_last=$work_last
+
 	if ! wip_last=$(git rev-parse --quiet --verify $wip_branch)
 	then
 		die "'$work_branch' branch has no commits."
 	fi
 
-	local base=$(git merge-base $wip_last $work_last)
-	case $base in
-	$work_last)
-		range=$work_branch~1..$wip_branch
-		;;
-	$wip_last)
-		range=$wip_branch~1..$work_branch
-		;;
-	*) 
-		range=$work_branch...$wip_branch
-		;;
-	esac
+	dbg wip_last=$wip_last
 
-	echo $git_log $@ $range | sh
+	local base=$(git merge-base $wip_last $work_last)
+
+	dbg base=$base
+
+	echo $git_log $@ $wip_last $work_last "^$base~1" | sh
 }
 
 do_delete () {
@@ -264,6 +259,8 @@ do_help () {
 	local rc=$1
 
 	cat <<END
+Usage: git wip $USAGE
+
 $LONG_USAGE
 END
 	exit $rc
