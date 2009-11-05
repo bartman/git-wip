@@ -156,14 +156,18 @@ do_save () {
 	dbg "msg=$msg"
 	dbg "files=$files"
 
-	local work_branch=$(get_work_branch)
-	local wip_branch=$WIP_PREFIX$work_branch
+	local work_branch="$(get_work_branch)"
+	local wip_branch="$WIP_PREFIX$work_branch"
+	local work_dir="$(echo "$work_branch" | sed "s/\/[^\/]*$//" )"
+	local wip_dir="$WIP_PREFIX$work_dir"
 
 	dbg "work_branch=$work_branch"
 	dbg "wip_branch=$wip_branch"
+	dbg "work_dir=$work_dir"
+	dbg "wip_dir=$wip_dir"
 
 	# enable reflog
-	mkdir -p "$GIT_DIR/logs/$WIP_PREFIX"
+	mkdir -p "$GIT_DIR/logs/$wip_dir"
 	: >>"$GIT_DIR/logs/$wip_branch"
 
 	if ! work_last=$(git rev-parse --verify $work_branch)
