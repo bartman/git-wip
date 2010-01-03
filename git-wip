@@ -15,7 +15,7 @@
 # Please see http://www.gnu.org/licenses/gpl-2.0.txt
 #
 
-USAGE='[ info | save <message> [ --editor | --untracked ] | log [ --pretty ] | delete ] [ [--] <file>... ]'
+USAGE='[ info | save <message> [ --editor | --only-tracked ] | log [ --pretty ] | delete ] [ [--] <file>... ]'
 LONG_USAGE="Manage Work In Progress branches
 
 Commands:
@@ -27,7 +27,7 @@ Commands:
 
 Options for save:
         -e --editor               - be less verbose, assume called from an editor
-        -u --untracked            - capture also untracked files
+        -t --only-tracked         - only capture untracked files
         -i --ignored              - capture also ignored files
 
 Options for log:
@@ -120,7 +120,7 @@ build_new_tree () {
 
 do_save () {
 	local msg="$1" ; shift
-	local add_untracked=
+	local add_untracked=t
 	local add_ignored=
 
 	while test $# != 0
@@ -129,8 +129,8 @@ do_save () {
 		-e|--editor)
 			EDITOR_MODE=true
 			;;
-		-u|--untracked)
-			add_untracked=t
+		-t|--only-tracked)
+			add_untracked=
 			;;
 		-i|--ignored)
 			add_ignored=t
