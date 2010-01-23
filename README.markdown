@@ -73,12 +73,16 @@ The git-wip command can be invoked in several differnet ways.
 To use git-wip effectively, you should tie it into your editor so you
 don't have to remember to run git-wip manually.
 
-To add git-wip support to vim add the following to your `.vimrc`.  Doing
-so will make it be invoked after every `:w` operation.
+To add git-wip support to vim you can install the provided vim plugin.
+
+    cp vim/plugin/git-wip ~/.vim/plugin/git-wip
+
+Alternatively, you can add the following to your `.vimrc`.  Doing so
+will make it be invoked after every `:w` operation.
 
     augroup git-wip
       autocmd!
-      autocmd BufWritePost * :silent !git wip save "WIP from vim" --editor -- "%"
+      autocmd BufWritePost * :silent !cd "`dirname "%"`" && git wip save "WIP from vim" --editor -- "`basename "%"`"
     augroup END
 
 The `--editor` option puts git-wip into a special mode that will make it
