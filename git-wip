@@ -11,6 +11,9 @@
 #
 # See also http://github.com/bartman/git-wip
 #
+# The code is licensed as GPL v2 or, at your option, any later version.
+# Please see http://www.gnu.org/licenses/gpl-2.0.txt
+#
 
 USAGE='[ info | save <message> [ --editor | --untracked ] | log [ --pretty ] | delete ] [ [--] <file>... ]'
 LONG_USAGE="Manage Work In Progress branches
