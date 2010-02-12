@@ -56,13 +56,19 @@ dbg() {
 	fi
 }
 
+# some errors are not worth reporting in --editor mode
+report_soft_error () {
+	$EDITOR_MODE && exit 0
+	die "$@"
+}
+
 cleanup () {
 	rm -f "$TMP-*"
 }
 
 get_work_branch () {
 	ref=$(git symbolic-ref -q HEAD) \
-	|| die "git-wip requires a branch"
+	|| report_soft_error "git-wip requires a branch"
 
 
 	branch=${ref#refs/heads/}
@@ -84,15 +90,6 @@ check_files () {
 	do
 		[ -f "$f" -o -d "$f" ] || die "$f: No such file or directory."
 	done
-}
-
-report_no_changes () {
-	if $EDITOR_MODE
-	then
-		say "(git wip: no changes)"
-		exit 0
-	fi
-	die "no changes"
 }
 
 build_new_tree () {
@@ -173,7 +170,7 @@ do_save () {
 
 	if ! work_last=$(git rev-parse --verify $work_branch)
 	then
-		die "'$work_branch' branch has no commits."
+		report_soft_error "'$work_branch' branch has no commits."
 	fi
 
 	dbg "work_last=$work_last"
@@ -200,7 +197,7 @@ do_save () {
 	dbg "new_tree=$new_tree"
 
 	if git diff-tree --exit-code --quiet $new_tree $wip_parent ; then
-		report_no_changes
+		report_soft_error "no changes"
 	fi
 
 	dbg "... has changes"
