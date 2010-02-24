@@ -117,7 +117,7 @@ build_new_tree () {
 }
 
 do_save () {
-	local msg=$1 ; shift
+	local msg="$1" ; shift
 	local add_untracked=
 	local add_ignored=
 
@@ -278,13 +278,15 @@ then
 	exit $?
 fi
 
+dbg "args: $@"
+
 case "$1" in
 save)
 	WIP_COMMAND=$1
 	shift
 	if [ -n "$1" ]
 	then
-		WIP_MESSAGE=$1
+		WIP_MESSAGE="$1"
 		shift
 	fi
 	;;
