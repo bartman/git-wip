@@ -207,7 +207,8 @@ do_save () {
 
 	dbg "new_wip=$new_wip"
 
-	git update-ref -m "git-wip: $msg" $wip_branch $new_wip
+	msg1=$(printf '%s\n' "$msg" | sed -e 1q)
+	git update-ref -m "git-wip: $msg1" $wip_branch $new_wip $wip_last
 
 	dbg "SUCCESS"
 }
