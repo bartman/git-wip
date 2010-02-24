@@ -8,7 +8,7 @@ endif
 function! GitWipSave()
         let dir = expand("%:p:h")
         let file = expand("%:t")
-        let out = system('cd ' . dir . ' && git wip save "WIP from vim" --editor -- "' . file . '" 2>&1')
+        let out = system('cd ' . dir . ' && git wip save "WIP from vim (' . file . ')" --editor -- "' . file . '" 2>&1')
         let err = v:shell_error
         if err
                 echohl Error
