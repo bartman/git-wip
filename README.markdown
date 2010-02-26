@@ -89,6 +89,39 @@ The `--editor` option puts git-wip into a special mode that will make it
 more quiet and not report errors if there were no changes made to the
 file.
 
+# recovery
+
+Should you discover that you made some really bad changes in your code,
+from which you want to recover, here is what to do.
+
+First we need to find the commit we are interested in.  If it's the most recent
+then it can be referenced with `wip/master` (assuming your branch is `master`),
+otherwise you may need to find the one you want using:
+
+    git reflog show wip/master
+
+I personally prefer to inspect the reflog with `git log -g`, and sometimes 
+with `-p` also:
+
+    git log -g -p wip/master
+
+Once you've picked a commit, you need to checkout the files, note that we are not
+switching the commit that your branch points to (HEAD will continue to reference
+the last real commit on the branch).  We are just checking out the files:
+
+    git checkout ref -- .
+
+Here `ref` could be a SHA1 or `wip/master`.  If you only want to recover one file,
+then use it's path instead of the *dot*.
+
+The changes will be staged in the index and checked out into the working tree, to
+review what the differences are between the last commit, use:
+
+    git diff --cached
+
+If you want, you can unstage all or some with `git reset`, optionally specifying a
+filename to unstage.  You can then stage them again using `git add` or `git add -p`.
+Finally, when you're happy with the changes, commit them.
 
 
 <!-- vim: set ft=mkd -->
