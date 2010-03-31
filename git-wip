@@ -36,7 +36,13 @@ Options for log:
 
 SUBDIRECTORY_OK=Yes
 OPTIONS_SPEC=
-. git-sh-setup || . $(git --exec-path)/git-sh-setup || ( echo "git wip needs git to run." ; exit 1 )
+
+if [ -r git-sh-setup ] ; then
+	. git-sh-setup
+else
+	. $(git --exec-path)/git-sh-setup || ( echo "git wip needs git to run." ; exit 1 )
+fi
+
 require_work_tree
 
 TMP="$GIT_DIR/.git-wip.$$"
