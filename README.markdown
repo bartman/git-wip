@@ -89,6 +89,13 @@ The `--editor` option puts git-wip into a special mode that will make it
 more quiet and not report errors if there were no changes made to the
 file.
 
+To add git-wip support to emacs add the following to your `.emacs`. Doing
+so will make it be invoked after every `save-buffer` operation.
+
+    (load "/{path_to_git-wip}/emacs/git-wip.el")
+
+Or you may also copy the content of git-wip.el in your `.emacs`.
+
 # recovery
 
 Should you discover that you made some really bad changes in your code,
