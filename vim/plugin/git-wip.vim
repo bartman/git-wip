@@ -11,11 +11,13 @@ function! GitWipSave()
         let out = system('cd ' . dir . ' && git wip save "WIP from vim (' . file . ')" --editor -- "' . file . '" 2>&1')
         let err = v:shell_error
         if err
+                redraw
                 echohl Error
-                echo out
+                echo "git-wip: " . out
                 echohl None
         elseif g:git_wip_verbose
-                echo out
+                redraw
+                echo "git-wip: " . out
         endif
 endf
 
