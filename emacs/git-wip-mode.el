@@ -1,8 +1,7 @@
 (eval-when-compile
-  (require 'cl)
-  (require 'vc))
+  (require 'cl))
 
-(require 'vc-hooks)
+(require 'vc)
 
 (defun git-wip-after-save ()
   (interactive)
@@ -35,9 +34,8 @@ you save a buffer."
 
 (defun git-wip-mode-if-git ()
   (interactive)
-  (vc-find-file-hook)
-  (when vc-mode
-      (git-wip-mode t)))
+  (when (string= (vc-backend (buffer-file-name)) "Git")
+    (git-wip-mode t)))
 
 (add-hook 'find-file-hook 'git-wip-mode-if-git)
 
