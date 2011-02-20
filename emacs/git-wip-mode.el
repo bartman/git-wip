@@ -7,10 +7,11 @@
 (defun git-wip-after-save ()
   (interactive)
   (when (string= (vc-backend (buffer-file-name)) "Git")
-    (shell-command (concat "git-wip save \"WIP from emacs: "
-                           (buffer-file-name)
-                           "\" --editor -- "
-                           (buffer-file-name)))
+    (start-process "git-wip" "*git-wip*"
+                   "git-wip" "save" (concat "WIP from emacs: "
+                                            (buffer-file-name))
+                   "--editor" "--"
+                   (buffer-file-name))
     (message (concat "Wrote and git-wip'd " (buffer-file-name)))))
 
 (define-minor-mode git-wip-mode
