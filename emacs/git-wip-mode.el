@@ -8,9 +8,10 @@
   (when (string= (vc-backend (buffer-file-name)) "Git")
     (start-process "git-wip" "*git-wip*"
                    "git-wip" "save" (concat "WIP from emacs: "
-                                            (buffer-file-name))
+                                            (file-name-nondirectory
+                                            buffer-file-name))
                    "--editor" "--"
-                   (buffer-file-name))
+                   (file-name-nondirectory buffer-file-name))
     (message (concat "Wrote and git-wip'd " (buffer-file-name)))))
 
 (define-minor-mode git-wip-mode
