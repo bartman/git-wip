@@ -6,6 +6,13 @@ if !exists('g:git_wip_verbose')
 endif
 
 function! GitWipSave()
+        if expand("%") == ".git/COMMIT_EDITMSG"
+            return
+        endif
+        let out = system('git rev-parse 2>&1')
+        if v:shell_error
+            return
+        endif
         let dir = expand("%:p:h")
         let file = expand("%:t")
         let out = system('cd ' . dir . ' && git wip save "WIP from vim (' . file . ')" --editor -- "' . file . '" 2>&1')
