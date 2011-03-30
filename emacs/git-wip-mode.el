@@ -4,7 +4,6 @@
 (require 'vc)
 
 (defun git-wip-after-save ()
-  (interactive)
   (when (string= (vc-backend (buffer-file-name)) "Git")
     (start-process "git-wip" "*git-wip*"
                    "git-wip" "save" (concat "WIP from emacs: "
@@ -34,7 +33,6 @@ you save a buffer."
     (remove-hook 'after-save-hook 'git-wip-after-save t)))
 
 (defun git-wip-mode-if-git ()
-  (interactive)
   (when (string= (vc-backend (buffer-file-name)) "Git")
     (git-wip-mode t)))
 
