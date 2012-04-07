@@ -34,7 +34,7 @@ evolve the work from the last wip/*topic* point.
                        \
                         *      <-- wip/topic
 
-Whne git-wip is invoked after a commit is made, the state of the
+When git-wip is invoked after a commit is made, the state of the
 wip/*topic* branch will be reset back to your *topic* branch and the new
 changes to the working tree will be caputred on a new commit.
 
