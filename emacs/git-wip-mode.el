@@ -11,9 +11,9 @@
   (interactive)
   (when (git-wip-buffer-is-git-p)
     (start-process "git-wip" "*git-wip*"
-                   "git-wip" "save" (concat "WIP from emacs: "
-                                            (file-name-nondirectory
-                                            buffer-file-name))
+                   "git" "wip" "save" (concat "WIP from emacs: "
+                                              (file-name-nondirectory
+                                               buffer-file-name))
                    "--editor" "--"
                    (file-name-nondirectory buffer-file-name))
     (message (concat "Wrote and git-wip'd " (buffer-file-name)))))
