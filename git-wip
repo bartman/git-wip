@@ -242,7 +242,7 @@ do_log () {
 
 	if ! wip_last=$(git rev-parse --quiet --verify $wip_branch)
 	then
-		die "'$work_branch' branch has no commits."
+		die "'$wip_branch' branch has no commits."
 	fi
 
 	dbg wip_last=$wip_last
