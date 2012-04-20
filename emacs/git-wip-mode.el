@@ -3,9 +3,13 @@
 
 (require 'vc)
 
+(defun git-wip-buffer-is-git-p ()
+  "Return true if the current buffer is managed by git, false otherwise."
+  (string= "git" (downcase (format "%s" (vc-backend (buffer-file-name))))))
+
 (defun git-wip-after-save ()
   (interactive)
-  (when (string= (vc-backend (buffer-file-name)) "Git")
+  (when (git-wip-buffer-is-git-p)
     (start-process "git-wip" "*git-wip*"
                    "git-wip" "save" (concat "WIP from emacs: "
                                             (file-name-nondirectory
@@ -35,7 +39,7 @@ you save a buffer."
 
 (defun git-wip-mode-if-git ()
   (interactive)
-  (when (string= (vc-backend (buffer-file-name)) "Git")
+  (when (git-wip-buffer-is-git-p)
     (git-wip-mode t)))
 
 (add-hook 'find-file-hook 'git-wip-mode-if-git)
