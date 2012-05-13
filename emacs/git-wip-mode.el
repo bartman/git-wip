@@ -7,7 +7,8 @@
   "Name of the buffer to which git-wip's output will be echoed")
 
 (defun git-wip-after-save ()
-  (when (string= (vc-backend (buffer-file-name)) "Git")
+  (when (and (string= (vc-backend (buffer-file-name)) "Git")
+             (executable-find "git-wip"))
     (start-process "git-wip" git-wip-buffer-name
                    "git-wip" "save" (concat "WIP from emacs: "
                                             (file-name-nondirectory
