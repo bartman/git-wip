@@ -45,7 +45,7 @@ changes to the working tree will be caputred on a new commit.
                         *
 
 While the old wip/*topic* work is no longer accessible directly, it can
-alwasy be recovered from git-reflog.  In the above example you could use
+always be recovered from git-reflog.  In the above example you could use
 `wip/topic@{1}` to access the dangling references.
 
 # git-wip command
