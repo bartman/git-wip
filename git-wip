@@ -86,9 +86,7 @@ get_wip_branch () {
 }
 
 check_files () {
-	local files=$@
-
-	for f in $files
+	for f 
 	do
 		[ -f "$f" -o -d "$f" ] || die "$f: No such file or directory."
 	done
@@ -97,7 +95,6 @@ check_files () {
 build_new_tree () {
 	local untracked=$1 ; shift
 	local ignored=$1 ; shift
-	local files=$@
 
 	(
 	set -e
@@ -105,9 +102,9 @@ build_new_tree () {
 	cp -p "$GIT_DIR/index" "$WIP_INDEX"
 	export GIT_INDEX_FILE="$WIP_INDEX"
 	git read-tree $wip_parent
-	if [ -n "$files" ]
+	if [ -n "$@" ]
 	then
-		git add $files
+		git add "$@"
 	else
 		git add -u
 	fi
@@ -146,17 +143,16 @@ do_save () {
 		esac
 		shift
 	done
-	local files=$@
 	local "add_untracked=$add_untracked"
 	local "add_ignored=$add_ignored"
 
-	if test ${#files} -gt 0
+	if test $# -gt 0
 	then
-		check_files $files
+		check_files "$@"
 	fi
 
 	dbg "msg=$msg"
-	dbg "files=$files"
+	dbg "files=$@"
 
 	local work_branch=$(get_work_branch)
 	local wip_branch="$WIP_PREFIX$work_branch"
@@ -193,7 +189,7 @@ do_save () {
 
 	dbg "wip_parent=$wip_parent"
 
-	new_tree=$( build_new_tree "$add_untracked" "$add_ignored" $files ) \
+	new_tree=$( build_new_tree "$add_untracked" "$add_ignored" "$@" ) \
 	|| die "Cannot save the current worktree state."
 
 	dbg "new_tree=$new_tree"
@@ -308,7 +304,7 @@ esac
 
 case $WIP_COMMAND in
 save)
-	do_save "$WIP_MESSAGE" $@
+	do_save "$WIP_MESSAGE" "$@"
 	;;
 info)
 	do_info $@
