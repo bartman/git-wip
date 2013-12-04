@@ -109,7 +109,7 @@ build_new_tree () {
 	then
 		git add $files
 	else
-		git add -u
+		git add --update .
 	fi
 	[ -n "$untracked" ] && git add .
 	[ -n "$ignored" ] && git add -f -A .
