@@ -107,7 +107,7 @@ build_new_tree () {
 	git read-tree $wip_parent
 	if [ -n "$files" ]
 	then
-		git add $files
+		git add -f $files
 	else
 		git add -u
 	fi
