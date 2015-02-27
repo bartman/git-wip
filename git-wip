@@ -37,7 +37,7 @@ Options for log:
 SUBDIRECTORY_OK=Yes
 OPTIONS_SPEC=
 
-. git-sh-setup
+. "$(git --exec-path)/git-sh-setup"
 
 require_work_tree
 
@@ -109,7 +109,7 @@ build_new_tree () {
 	then
 		git add -f $files
 	else
-		git add -u
+		git add --update .
 	fi
 	[ -n "$untracked" ] && git add .
 	[ -n "$ignored" ] && git add -f -A .
