@@ -1,3 +1,28 @@
+;;; git-wip-mode.el --- Use git-wip to record every buffer save
+
+;; Copyright (C) 2013  Jerome Baum
+
+;; Author: Jerome Baum <jerome@jeromebaum.com>
+;; Version: 0.1
+;; Keywords: vc
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
+;;; Code:
+
 (eval-when-compile
   (require 'cl))
 
@@ -36,6 +61,7 @@
                    (file-name-nondirectory buffer-file-name))
     (message (concat "Wrote and git-wip'd " (buffer-file-name)))))
 
+;;;###autoload
 (define-minor-mode git-wip-mode
   "Toggle git-wip mode.
 With no argument, this command toggles the mode.
@@ -62,3 +88,4 @@ you save a buffer."
 (add-hook 'find-file-hook 'git-wip-mode-if-git)
 
 (provide 'git-wip-mode)
+;;; git-wip-mode.el ends here
