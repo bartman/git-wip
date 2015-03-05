@@ -6,6 +6,13 @@ if !exists('g:git_wip_verbose')
 endif
 
 function! GitWipSave()
+        if expand("%") == ".git/COMMIT_EDITMSG"
+            return
+        endif
+        let out = system('git rev-parse 2>&1')
+        if v:shell_error
+            return
+        endif
         let dir = expand("%:p:h")
         let show_cdup = system('cd ' . dir . ' && git rev-parse --show-cdup 2>/dev/null')
         if v:shell_error

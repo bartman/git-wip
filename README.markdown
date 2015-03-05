@@ -45,7 +45,7 @@ changes to the working tree will be caputred on a new commit.
                         *
 
 While the old wip/*topic* work is no longer accessible directly, it can
-alwasy be recovered from git-reflog.  In the above example you could use
+always be recovered from git-reflog.  In the above example you could use
 `wip/topic@{1}` to access the dangling references.
 
 # git-wip command
@@ -73,11 +73,21 @@ The git-wip command can be invoked in several differnet ways.
 To use git-wip effectively, you should tie it into your editor so you
 don't have to remember to run git-wip manually.
 
-To add git-wip support to vim you can install the provided vim plugin.
+## vim
+
+To add git-wip support to vim you can install the provided vim plugin.  There
+are a few ways to do this.
+
+**(1)** If you're using [Vundle](https://github.com/gmarik/Vundle.vim), you
+just need to include the following line in your `.vimrc`.
+
+    Bundle 'bartman/git-wip', {'rtp': 'vim/'}
+
+**(2)** You can slo copy the `git-wip.vim` into your vim runtime:
 
     cp vim/plugin/git-wip ~/.vim/plugin/git-wip
 
-Alternatively, you can add the following to your `.vimrc`.  Doing so
+**(3)** Alternatively, you can add the following to your `.vimrc`.  Doing so
 will make it be invoked after every `:w` operation.
 
     augroup git-wip
@@ -89,12 +99,19 @@ The `--editor` option puts git-wip into a special mode that will make it
 more quiet and not report errors if there were no changes made to the
 file.
 
+## emacs
+
 To add git-wip support to emacs add the following to your `.emacs`. Doing
 so will make it be invoked after every `save-buffer` operation.
 
     (load "/{path_to_git-wip}/emacs/git-wip.el")
 
 Or you may also copy the content of git-wip.el in your `.emacs`.
+
+## sublime
+
+A sublime plugin was contributed as well.  You will find it in the `sublime`
+directory.
 
 # recovery
 
@@ -131,4 +148,4 @@ filename to unstage.  You can then stage them again using `git add` or `git add 
 Finally, when you're happy with the changes, commit them.
 
 
-<!-- vim: set ft=mkd -->
+<!-- vim: set ft=markdown -->
