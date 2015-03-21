@@ -1,6 +1,6 @@
 import sublime_plugin
 from subprocess import Popen, PIPE, STDOUT
-from os import path
+import os
 import sublime
 import copy
 
@@ -13,8 +13,8 @@ class GitWipAutoCommand(sublime_plugin.EventListener):
     self.dirdata = None
 
   def on_post_save_async(self, view):
-    #(dirname, fname) = path.split(view.file_name())
-    self.dirdata = path.split(view.file_name())
+    #(dirname, fname) = os.path.split(view.file_name())
+    self.dirdata = os.path.split(view.file_name())
 
     if self.p is None:      
       self.apply_git()
