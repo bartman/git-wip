@@ -68,6 +68,17 @@ The git-wip command can be invoked in several differnet ways.
   
   `git log --stat wip/$branch...$(git merge-base wip/$branch $branch)`
 
+# Installation
+
+Download the script from the GitHub page:
+
+    git clone git://github.com/bartman/git-wip.git
+
+Add `git-wip` to your `$PATH`:
+
+    mkdir -p ~/bin
+    cp git-wip/git-wip ~/bin/
+
 # editor hooking
 
 To use git-wip effectively, you should tie it into your editor so you
