@@ -7,8 +7,9 @@ that each time you save your file, the git-wip script captures that
 state in git.  git-wip also helps you return back to a previous state of
 development.
 
-Latest git-wip can be obtained from [github.com](http://github.com/bartman/git-wip)
-git-wip was written by [Bart Trojanowski](mailto:bart@jukie.net)
+Latest git-wip can be obtained from [github.com](http://github.com/bartman/git-wip).
+git-wip was written by [Bart Trojanowski](mailto:bart@jukie.net).
+You can find out more from the original [blog post](http://www.jukie.net/bart/blog/save-everything-with-git-wip).
 
 # WIP branches
 
