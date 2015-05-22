@@ -32,6 +32,8 @@ Options for save:
 
 Options for log:
         -p --pretty               - show a pretty graph
+	-r --reflog               - show changes in reflog
+	-s --stat                 - show diffstat
 "
 
 SUBDIRECTORY_OK=Yes
@@ -226,11 +228,34 @@ do_log () {
 	[ -z $branch ] && work_branch=$(get_work_branch)
 	local wip_branch="$WIP_PREFIX$work_branch"
 
-	local git_log="git log"
-	if [ "$1" = --pretty -o "$1" = -p ]
-	then
+	local log_cmd="log"
+	local graph=""
+	local pretty=""
+	local stat=""
+	while [ -n "$1" ]
+	do
+		case "$1" in
+			-p|--pretty)
+				graph="--graph"
+				pretty="--pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' --abbrev-commit --date=relative"
+				;;
+			-s|--stat)
+				stat="--stat"
+				;;
+			-r|--reflog)
+				log_cmd="reflog"
+				;;
+			*)
+				break
+				;;
+		esac
 		shift
-		git_log="git log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' --abbrev-commit --date=relative"
+	done
+
+	if [ $log_cmd = reflog ]
+	then
+		echo git reflog $stat $pretty $wip_branch | sh
+		return $?
 	fi
 
 	if ! work_last=$(git rev-parse --verify $work_branch)
@@ -251,7 +276,7 @@ do_log () {
 
 	dbg base=$base
 
-	echo $git_log $@ $wip_last $work_last "^$base~1" | sh
+	echo git log $graph $stat $pretty $@ $wip_last $work_last "^$base~1" | sh
 }
 
 do_delete () {
