@@ -90,7 +90,7 @@ get_wip_branch () {
 }
 
 check_files () {
-	local -a files="$@"
+	local files="$@"
 
 	for f in "${files[@]}"
 	do
@@ -282,7 +282,7 @@ do_log () {
 
 	dbg base=$base
 
-	echo git log $graph $stat $pretty $@ $wip_last $work_last "^$base~1" | sh
+	echo git log $graph $stat $pretty "$@" $wip_last $work_last "^$base~1" | sh
 }
 
 do_delete () {
@@ -339,16 +339,16 @@ esac
 
 case $WIP_COMMAND in
 save)
-	do_save "$WIP_MESSAGE" $@
+	do_save "$WIP_MESSAGE" "$@"
 	;;
 info)
-	do_info $@
+	do_info "$@"
 	;;
 log)
-	do_log $@
+	do_log "$@"
 	;;
 delete)
-	do_delete $@
+	do_delete "$@"
 	;;
 *)
 	usage
