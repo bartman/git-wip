@@ -15,7 +15,7 @@
 # Please see http://www.gnu.org/licenses/gpl-2.0.txt
 #
 
-USAGE='[ info | save <message> [ --editor | --untracked ] | log [ --pretty ] | delete ] [ [--] <file>... ]'
+USAGE='[ info | save <message> [ --editor | --untracked | --no-gpg-sign ] | log [ --pretty ] | delete ] [ [--] <file>... ]'
 LONG_USAGE="Manage Work In Progress branches
 
 Commands:
@@ -29,6 +29,8 @@ Options for save:
         -e --editor               - be less verbose, assume called from an editor
         -u --untracked            - capture also untracked files
         -i --ignored              - capture also ignored files
+        --no-gpg-sign             - do not sign commit; that is, countermand
+                                    'commit.gpgSign = true'
 
 Options for log:
         -p --pretty               - show a pretty graph
@@ -124,6 +126,7 @@ do_save () {
 	local msg="$1" ; shift
 	local add_untracked=
 	local add_ignored=
+	local no_sign=
 
 	while test $# != 0
 	do
@@ -136,6 +139,9 @@ do_save () {
 			;;
 		-i|--ignored)
 			add_ignored=t
+			;;
+		--no-gpg-sign)
+			no_sign=--no-gpg-sign
 			;;
 		--)
 			shift
@@ -206,7 +212,7 @@ do_save () {
 
 	dbg "... has changes"
 
-	new_wip=$(printf '%s\n' "$msg" | git commit-tree $new_tree -p $wip_parent) \
+	new_wip=$(printf '%s\n' "$msg" | git commit-tree $no_sign $new_tree -p $wip_parent 2>/dev/null) \
 	|| die "Cannot record working tree state"
 
 	dbg "new_wip=$new_wip"

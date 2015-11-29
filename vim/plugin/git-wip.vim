@@ -4,10 +4,17 @@
 if !exists('g:git_wip_verbose')
         let g:git_wip_verbose = 0
 endif
+if !exists('g:git_wip_disable_signing')
+        let g:git_wip_disable_signing = 0
+endif
 
 function! GitWipSave()
         if expand("%") == ".git/COMMIT_EDITMSG"
             return
+        endif
+        let wip_opts = '--editor'
+        if g:git_wip_disable_signing
+            let wip_opts .= ' --no-gpg-sign'
         endif
         let out = system('git rev-parse 2>&1')
         if v:shell_error
@@ -26,7 +33,7 @@ function! GitWipSave()
             return
         endif
         let file = expand("%:t")
-        let out = system('cd ' . dir . ' && git wip save "WIP from vim (' . file . ')" --editor -- "' . file . '" 2>&1')
+        let out = system('cd ' . dir . ' && git wip save "WIP from vim (' . file . ')" ' . wip_opts . ' -- "' . file . '" 2>&1')
         let err = v:shell_error
         if err
                 redraw
