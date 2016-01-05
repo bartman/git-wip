@@ -173,10 +173,10 @@ do_save () {
 	dbg "wip_branch=$wip_branch"
 
 	# enable reflog
-	local wip_branch_file="$GIT_DIR/logs/$wip_branch"
-	dbg "wip_branch_file=$wip_branch_file"
-	mkdir -p "$(dirname "$wip_branch_file")"
-	: >>"$wip_branch_file"
+	local wip_branch_reflog="$GIT_DIR/logs/$wip_branch"
+	dbg "wip_branch_reflog=$wip_branch_reflog"
+	mkdir -p "$(dirname "$wip_branch_reflog")"
+	: >>"$wip_branch_reflog"
 
 	if ! work_last=$(git rev-parse --verify $work_branch)
 	then
@@ -196,6 +196,14 @@ do_save () {
 			wip_parent=$work_last
 		fi
 	else
+		# remove empty/corrupt wip branch file
+		local wip_branch_file="$GIT_DIR/$wip_branch"
+		if test -e "$wip_branch_file"
+		then
+			dbg "removing $wip_branch_file"
+			rm -f "$wip_branch_file"
+		fi
+		# use the working branch for parent
 		wip_parent=$work_last
 	fi
 
