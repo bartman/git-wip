@@ -90,7 +90,7 @@ get_wip_branch () {
 }
 
 check_files () {
-	local files="$@"
+	local -a files="$@"
 
 	for f in "${files[@]}"
 	do
