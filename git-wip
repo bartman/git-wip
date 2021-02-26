@@ -282,7 +282,7 @@ do_log () {
 
 	dbg base=$base
 
-	echo git log $graph $stat $pretty $@ $wip_last $work_last "^$base~1" | sh
+	echo git log $graph $stat $pretty "$@" $wip_last $work_last "^$base~1" | sh
 }
 
 do_delete () {
@@ -317,7 +317,7 @@ case "$1" in
 save)
 	WIP_COMMAND=$1
 	shift
-	if [ -n "$1" ]
+	if [ -n "$1" ] && [[ "$1" != --* ]]
 	then
 		WIP_MESSAGE="$1"
 		shift
@@ -339,16 +339,16 @@ esac
 
 case $WIP_COMMAND in
 save)
-	do_save "$WIP_MESSAGE" $@
+	do_save "$WIP_MESSAGE" "$@"
 	;;
 info)
-	do_info $@
+	do_info "$@"
 	;;
 log)
-	do_log $@
+	do_log "$@"
 	;;
 delete)
-	do_delete $@
+	do_delete "$@"
 	;;
 *)
 	usage
