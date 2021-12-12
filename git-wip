@@ -160,6 +160,7 @@ do_save () {
 
 	if test "${#files[@]}" -gt 0
 	then
+		dbg "check_files ${files[@]}"
 		check_files "${files[@]}"
 	fi
 
