@@ -290,7 +290,14 @@ do_log () {
 
 	dbg base=$base
 
-	echo git log $graph $stat $pretty "$@" $wip_last $work_last "^$base~1" | sh
+	local stop=$base
+	if git cat-file commit $base | grep -q '^parent' ; then
+		stop="$base~1"
+	fi
+
+	dbg stop=$stop
+
+	echo git log $graph $stat $pretty "$@" $wip_last $work_last "^$stop" | sh
 }
 
 do_delete () {
