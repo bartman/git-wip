@@ -21,7 +21,7 @@ function! GitWipSave()
             return
         endif
         let dir = expand("%:p:h")
-        let show_cdup = system('cd ' . dir . ' && git rev-parse --show-cdup 2>/dev/null')
+        let show_cdup = system('cd "' . dir . '" && git rev-parse --show-cdup 2>/dev/null')
         if v:shell_error
             " We're not editing a file anywhere near a .git repository, so abort
             return
@@ -33,7 +33,7 @@ function! GitWipSave()
             return
         endif
         let file = expand("%:t")
-        let out = system('cd ' . dir . ' && git wip save "WIP from vim (' . file . ')" ' . wip_opts . ' -- "' . file . '" 2>&1')
+        let out = system('cd "' . dir . '" && git wip save "WIP from vim (' . file . ')" ' . wip_opts . ' -- "' . file . '" 2>&1')
         let err = v:shell_error
         if err
                 redraw
