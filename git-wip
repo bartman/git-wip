@@ -325,7 +325,7 @@ case "$1" in
 save)
 	WIP_COMMAND=$1
 	shift
-	if [ -n "$1" ] && [[ "$1" != --* ]]
+	if [ -n "$1" ] && [[ "$1" != -* ]]
 	then
 		WIP_MESSAGE="$1"
 		shift
