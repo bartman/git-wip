@@ -8,9 +8,26 @@ if !exists('g:git_wip_disable_signing')
         let g:git_wip_disable_signing = 0
 endif
 
+let g:git_wip_status = 0  " 0 = unchecked, 1 = good, 2 = failed
+
 function! GitWipSave()
         if expand("%") == ".git/COMMIT_EDITMSG"
             return
+        endif
+        if g:git_wip_status == 2
+            augroup git-wip
+                    autocmd!
+            augroup END
+            return
+        endif
+        if g:git_wip_status == 0
+            silent! !git wip -h >/dev/null 2>&1
+            if v:shell_error
+                let g:git_wip_status = 2
+                return
+            else
+                let g:git_wip_status = 1
+            endif
         endif
         let wip_opts = '--editor'
         if g:git_wip_disable_signing
@@ -46,11 +63,7 @@ function! GitWipSave()
         endif
 endf
 
-silent! !git wip -h >/dev/null 2>&1
-if !v:shell_error
-        augroup git-wip
-                autocmd!
-                autocmd BufWritePost * :call GitWipSave()
-        augroup END
-endif
-
+augroup git-wip
+        autocmd!
+        autocmd BufWritePost * :call GitWipSave()
+augroup END
