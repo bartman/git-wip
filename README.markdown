@@ -51,7 +51,7 @@ always be recovered from git-reflog.  In the above example you could use
 
 # git-wip command
 
-The git-wip command can be invoked in several differnet ways.
+The git-wip command can be invoked in several different ways.
 
 * `git wip`
   
