@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 #
 # Copyright Bart Trojanowski <bart@jukie.net>
-# 
+#
 # git-wip is a script that will manage Work In Progress (or WIP) branches.
 # WIP branches are mostly throw away but identify points of development
 # between commits.  The intent is to tie this script into your editor so
