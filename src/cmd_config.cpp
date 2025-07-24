@@ -1,6 +1,9 @@
 #include "cmd_config.hpp"
 #include "clipp.h"
 #include <iostream>
+#include <print>
+#include <format>
+#include <sstream> // Required for std::ostringstream
 #include <string>
 #include <map>
 
@@ -19,7 +22,7 @@ int ConfigCmd::run(int argc, char *argv[]) {
     if (argc == 1) {
         // List all config variables if only the command name is present
         for (const auto& pair : s_config_store) {
-            std::cout << pair.first << "=" << pair.second << "\n";
+            std::println("{}={}", pair.first, pair.second);
         }
         return 0;
     }
@@ -37,7 +40,9 @@ int ConfigCmd::run(int argc, char *argv[]) {
                 }
             }).doc("Set configuration variable")
         );
-        std::cout << clipp::make_man_page(cli, this->name());
+        std::ostringstream oss;
+        oss << clipp::make_man_page(cli, this->name());
+        std::println("{}", oss.str());
         return 0;
     }
 
@@ -55,25 +60,27 @@ int ConfigCmd::run(int argc, char *argv[]) {
     );
 
     if (!clipp::parse(argc, argv, cli)) {
-        std::cout << clipp::make_man_page(cli, this->name());
+        std::ostringstream oss;
+        oss << clipp::make_man_page(cli, this->name());
+        std::println("{}", oss.str());
         return 1;
     }
 
     if (set_value) {
         s_config_store[var_name] = var_value;
-        std::cout << "Set " << var_name << " to " << var_value << "\n";
+        std::println("Set {} to {}", var_name, var_value);
     } else if (!var_name.empty()) {
         auto it = s_config_store.find(var_name);
         if (it != s_config_store.end()) {
-            std::cout << it->second << "\n";
+            std::println("{}", it->second);
         } else {
-            std::cerr << "Error: Unknown configuration variable '" << var_name << "'\n";
+            std::println(std::cerr, "Error: Unknown configuration variable '{}'\n", var_name);
             return 1;
         }
     } else {
         // List all config variables
         for (const auto& pair : s_config_store) {
-            std::cout << pair.first << "=" << pair.second << "\n";
+            std::println("{}={}", pair.first, pair.second);
         }
     }
 

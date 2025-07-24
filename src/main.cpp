@@ -6,27 +6,30 @@
 #include "cmd_status.hpp"
 
 #include <iostream>
+#include <print>
+#include <format>
+#include <sstream> // Required for std::ostringstream
 #include <map>
 #include <memory>
 #include <vector>
 #include "clipp.h"
 
 void print_main_help(const std::vector<std::unique_ptr<Command>>& commands) {
-    std::cout << "Manage Work In Progress\n\n";
-    std::cout << "git-wip <command> [ --help | command options ]\n\n";
+    std::println("Manage Work In Progress\n");
+    std::println("git-wip <command> [ --help | command options ]\n");
     for (const auto& cmd : commands) {
-        std::cout << "    git-wip " << cmd->name() << "           # " << cmd->desc() << "\n";
+        std::println("    git-wip {:20} # {}", cmd->name(), cmd->desc());
     }
-    std::cout << "\nUse git-wip <command> --help to see command options.\n";
+    std::println("\nUse git-wip <command> --help to see command options.\n");
 }
 
 int main(int argc, char *argv[]) {
     std::vector<std::unique_ptr<Command>> commands;
     commands.push_back(std::make_unique<ConfigCmd>());
-    commands.push_back(std::make_unique<DeleteCmd>());
+    commands.push_back(std::make_unique<StatusCmd>());
     commands.push_back(std::make_unique<LogCmd>());
     commands.push_back(std::make_unique<SaveCmd>());
-    commands.push_back(std::make_unique<StatusCmd>());
+    commands.push_back(std::make_unique<DeleteCmd>());
 
     std::map<std::string, Command*> command_map;
     for (const auto& cmd : commands) {
@@ -52,7 +55,7 @@ int main(int argc, char *argv[]) {
         // so that argv[1] (command name) becomes argv[0] inside the command parser
         return cmd->run(argc - 1, argv + 1);
     } else {
-        std::cerr << "Error: Unknown command '" << command_name << "'\n";
+        std::println(std::cerr, "Error: Unknown command '{}'\n", command_name);
         print_main_help(commands);
         return 1;
     }

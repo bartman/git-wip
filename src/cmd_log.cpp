@@ -1,6 +1,8 @@
 #include "cmd_log.hpp"
 #include "clipp.h"
-#include <iostream>
+#include <print>
+#include <format>
+#include <sstream> // Required for std::ostringstream
 #include <vector>
 #include <string>
 
@@ -15,22 +17,26 @@ int LogCmd::run(int argc, char *argv[]) {
 
     // Check for --help
     if (argc > 1 && std::string(argv[1]) == "--help") {
-        std::cout << clipp::make_man_page(cli, this->name());
+        std::ostringstream oss;
+        oss << clipp::make_man_page(cli, this->name());
+        std::println("{}", oss.str());
         return 0;
     }
 
     if (!clipp::parse(argc, argv, cli)) {
-        std::cout << clipp::make_man_page(cli, this->name());
+        std::ostringstream oss;
+        oss << clipp::make_man_page(cli, this->name());
+        std::println("{}", oss.str());
         return 1;
     }
 
-    std::cout << "Log command executed. Pretty: " << (pretty ? "true" : "false") << "\n";
+    std::println("Log command executed. Pretty: {}", pretty ? "true" : "false");
     if (!files.empty()) {
-        std::cout << "Files: ";
+        std::print("Files: ");
         for (const auto& file : files) {
-            std::cout << file << " ";
+            std::print("{} ", file);
         }
-        std::cout << "\n";
+        std::println("");
     }
     return 0;
 }

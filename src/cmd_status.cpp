@@ -1,16 +1,17 @@
 #include "cmd_status.hpp"
 #include "clipp.h"
-#include <iostream>
+#include <print>
+#include <format>
 
 int StatusCmd::run(int argc, char *argv[]) {
     // Check for --help
     if (argc > 1 && std::string(argv[1]) == "--help") {
-        std::cout << "SYNOPSIS\n";
-        std::cout << "        status\n\n";
-        std::cout << "Inspect changes in the work in progress.\n";
+        std::println("SYNOPSIS");
+        std::println("        status\n");
+        std::println("Inspect changes in the work in progress.");
         return 0;
     }
 
-    std::cout << "Status command executed. (No options yet)\n";
+    std::println("Status command executed. (No options yet)");
     return 0;
 }
