@@ -13,6 +13,7 @@ You can find out more from the original [blog post](http://www.jukie.net/bart/bl
 
 Note: I had originally written a bash script that did this in 2009.
 This repo is a C++ rewrite of that concept, tag [v0.2](https://github.com/bartman/git-wip/releases/tag/v0.2) represents the last bash script version.
+The script was moved to "Attic" and is no longer maintained.
 
 ## TL;DR
 
