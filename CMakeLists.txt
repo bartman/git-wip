@@ -24,6 +24,10 @@ FetchContent_Declare(
 # Fetch and populate both
 FetchContent_MakeAvailable(spdlog clipp)
 
+include(FindPkgConfig)
+
+pkg_check_modules(LIBGIT2 REQUIRED libgit2)
+
 # Your executable
 add_executable(git-wip
     src/main.cpp
@@ -34,5 +38,17 @@ add_executable(git-wip
     src/cmd_status.cpp
 )
 
-target_link_libraries(git-wip PRIVATE spdlog::spdlog)
-target_include_directories(git-wip PRIVATE ${clipp_SOURCE_DIR}/include)
+target_include_directories(git-wip PRIVATE
+    ${clipp_SOURCE_DIR}/include
+    ${LIBGIT2_INCLUDE_DIRS}
+)
+
+target_link_libraries(git-wip PRIVATE
+    spdlog::spdlog
+    ${LIBGIT2_LIBRARIES}
+)
+
+target_link_directories(git-wip PRIVATE
+    ${LIBGIT2_LIBRARY_DIRS}
+)
+
