@@ -31,7 +31,6 @@ pkg_check_modules(LIBGIT2 REQUIRED libgit2)
 # Your executable
 add_executable(git-wip
     src/main.cpp
-    src/cmd_config.cpp
     src/cmd_delete.cpp
     src/cmd_log.cpp
     src/cmd_save.cpp

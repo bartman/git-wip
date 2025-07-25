@@ -1,5 +1,4 @@
 #include "command.hpp"
-#include "cmd_config.hpp"
 #include "cmd_delete.hpp"
 #include "cmd_log.hpp"
 #include "cmd_save.hpp"
@@ -13,19 +12,19 @@
 #include <memory>
 #include <vector>
 #include "clipp.h"
+#include "spdlog/spdlog.h"
 
-void print_main_help(const std::vector<std::unique_ptr<Command>>& commands) {
-    std::println("Manage Work In Progress\n");
-    std::println("git-wip <command> [ --help | command options ]\n");
+void print_main_help(const std::vector<std::unique_ptr<Command>>& commands, std::ostream &os = std::cout) {
+    std::println(os, "Manage Work In Progress\n");
+    std::println(os, "git-wip <command> [ --help | command options ]\n");
     for (const auto& cmd : commands) {
         std::println("    git-wip {:20} # {}", cmd->name(), cmd->desc());
     }
-    std::println("\nUse git-wip <command> --help to see command options.\n");
+    std::println(os, "\nUse git-wip <command> --help to see command options.\n");
 }
 
 int main(int argc, char *argv[]) {
     std::vector<std::unique_ptr<Command>> commands;
-    commands.push_back(std::make_unique<ConfigCmd>());
     commands.push_back(std::make_unique<StatusCmd>());
     commands.push_back(std::make_unique<LogCmd>());
     commands.push_back(std::make_unique<SaveCmd>());
@@ -55,8 +54,8 @@ int main(int argc, char *argv[]) {
         // so that argv[1] (command name) becomes argv[0] inside the command parser
         return cmd->run(argc - 1, argv + 1);
     } else {
-        std::println(std::cerr, "Error: Unknown command '{}'\n", command_name);
-        print_main_help(commands);
+        spdlog::error("Error: Unknown command '{}'\n", command_name);
+        print_main_help(commands, std::cerr);
         return 1;
     }
 
