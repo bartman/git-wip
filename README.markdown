@@ -159,5 +159,8 @@ If you want, you can unstage all or some with `git reset`, optionally specifying
 filename to unstage.  You can then stage them again using `git add` or `git add -p`.
 Finally, when you're happy with the changes, commit them.
 
+# related
+
+- [wip.rs](https://github.com/dlight/wip.rs) is a Rust executable that watches for changes in your work, and invokes `git-wip` as needed. (by [dlight](https://github.com/dlight)).
 
 <!-- vim: set ft=markdown -->
