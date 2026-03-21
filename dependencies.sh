@@ -16,6 +16,8 @@ set -e -x
 $SUDO apt update
 $SUDO apt install -y \
     cmake \
+    clangd \
+    clang \
     g++ \
     gcc \
     git \
