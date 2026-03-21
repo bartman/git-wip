@@ -9,7 +9,7 @@
 set(LEGACY_TEST_TREE "${CMAKE_CURRENT_BINARY_DIR}/test-artifacts")
 set(GIT_WIP_BIN "$<TARGET_FILE:git-wip>")
 
-foreach(TEST_NAME IN ITEMS test_legacy test_spaces test_status test_status2)
+foreach(TEST_NAME IN ITEMS test_legacy test_spaces test_status test_status2 test_save_file)
     add_test(
         NAME    "cli/${TEST_NAME}"
         COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/${TEST_NAME}.sh"
