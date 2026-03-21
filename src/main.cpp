@@ -43,9 +43,17 @@ int main(int argc, char *argv[]) {
         command_map[cmd->name()] = cmd.get();
     }
 
+    // No arguments: default to "save WIP" (matches old shell script behaviour)
     if (argc < 2) {
-        print_main_help(commands);
-        return 0;
+        spdlog::debug("no arguments, defaulting to 'save WIP'");
+        auto it = command_map.find("save");
+        if (it != command_map.end()) {
+            // Build a synthetic argv: ["save", "WIP"]
+            static const char *default_argv[] = {"save", "WIP", nullptr};
+            return it->second->run(2, const_cast<char **>(default_argv));
+        }
+        spdlog::error("internal error, 'save' not implemented");
+        return 1;
     }
 
     std::string command_name = argv[1];
@@ -55,6 +63,9 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
+    // If the first argument looks like a file (not a known command and not an
+    // option), treat the whole invocation as "save WIP [files...]" — matching
+    // the old script behaviour where bare file paths fall through to save.
     auto it = command_map.find(command_name);
     if (it != command_map.end()) {
         Command* cmd = it->second;

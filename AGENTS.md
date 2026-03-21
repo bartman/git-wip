@@ -182,12 +182,50 @@ Current command implementations (from src/):
 | Command | Header | Implementation | Status |
 |---------|--------|----------------|--------|
 | status | cmd_status.hpp | cmd_status.cpp | Skeleton - parses args but doesn't execute |
-| log | cmd_log.hpp | cmd_log.cpp | Skeleton - parses args but doesn't execute |
-| save | cmd_save.hpp | cmd_save.cpp | Skeleton - parses args but doesn't execute |
+| log | cmd_log.hpp | cmd_log.cpp | **Implemented** - resolves branches, merge-base, spawns `git log` |
+| save | cmd_save.hpp | cmd_save.cpp | **Implemented** - full libgit2 implementation, passes all legacy tests |
 | delete | cmd_delete.hpp | cmd_delete.cpp | Skeleton - parses args but doesn't execute |
 | config | - | - | Not implemented (not in main.cpp) |
 
-All commands currently just parse their arguments and print debug messages. The actual git-wip functionality needs to be implemented.
+### save command (cmd_save.cpp) — Implementation Notes
+
+The save command is implemented using libgit2 exclusively (no subprocess spawning).
+
+**Algorithm:**
+1. Parse args manually (clipp not used due to "first positional = message, rest = files" pattern)
+2. Open repo with `git_repository_open_ext`
+3. Resolve HEAD symbolic ref → get work branch short name → compute `refs/wip/<branch>`
+4. Ensure `$GIT_DIR/logs/refs/wip/<branch>` exists (for reflog)
+5. Resolve `work_last` from HEAD
+6. Determine `wip_parent`:
+   - If `refs/wip/<branch>` exists: compute merge-base; if `work_last == base` use `wip_last`, else use `work_last`
+   - Otherwise: use `work_last`
+7. Build new tree (in-memory):
+   - Get repo's index handle (via `git_repository_index`)
+   - `git_index_read_tree` to populate from parent commit's tree
+   - Apply workdir changes: `git_index_update_all` (default), `git_index_add_all` with DEFAULT (untracked), FORCE (ignored), or `git_index_add_bypath` for specific files
+   - `git_index_write_tree` to write tree object to ODB
+   - `git_index_read(force=1)` to restore real on-disk index
+8. Compare new tree OID vs parent commit tree OID — if equal, report "no changes" (or exit 0 in editor mode)
+9. Create commit: `git_commit_create` with NULL ref (don't update ref yet)
+10. Update ref: `git_reference_create_matching` with `current_id=wip_last` (NULL on first run) and reflog message `"git-wip: <first line>"`
+
+**Important caveat:** `git_index_update_all` / `git_index_add_all` operate on the repo's real in-memory index object, but we do NOT call `git_index_write`, so the on-disk index is never touched. We restore it via `git_index_read(force=1)` after writing the tree.
+
+### log command (cmd_log.cpp) — Implementation Notes
+
+The log command uses libgit2 to compute the range and then spawns `git log` (or `git reflog`) via `std::system()`.
+
+**Algorithm:**
+1. Parse args manually
+2. Open repo, resolve work branch and wip branch
+3. Resolve `work_last` and `wip_last` OIDs
+4. Compute `merge-base`; determine stop = `base~1` if base has parents, else `base`
+5. Build and exec: `git log [--graph] [--stat] [--pretty=...] <wip_last> <work_last> ^<stop>`
+
+### main.cpp — No-args behavior
+
+When `argc < 2`, main synthesizes `argv = ["save", "WIP"]` and invokes SaveCmd directly, matching the old shell script's default behavior.
 
 ## Required Implementation for Backward Compatibility
 
