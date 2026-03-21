@@ -1,25 +1,21 @@
 #include "cmd_log.hpp"
 #include "git_guards.hpp"
+#include "git_helpers.hpp"
 
 #include "spdlog/spdlog.h"
 
 #include <cstdlib>
-#include <format>
 #include <iostream>
 #include <print>
 #include <string>
 #include <vector>
 
-// ---------------------------------------------------------------------------
-// LogCmd::run
-// ---------------------------------------------------------------------------
-
 int LogCmd::run(int argc, char *argv[]) {
     // -----------------------------------------------------------------------
     // 1. Parse arguments
     // -----------------------------------------------------------------------
-    bool pretty = false;
-    bool stat = false;
+    bool pretty     = false;
+    bool stat       = false;
     bool reflog_mode = false;
     std::vector<std::string> files;
 
@@ -66,129 +62,87 @@ int LogCmd::run(int argc, char *argv[]) {
     git_repository *repo = repo_guard.get();
 
     // -----------------------------------------------------------------------
-    // 3. Get work branch and wip branch
+    // 3. Resolve branch names
     // -----------------------------------------------------------------------
-    ReferenceGuard head_ref;
-    if (git_repository_head(head_ref.ptr(), repo) < 0 ||
-        !git_reference_is_branch(head_ref.get())) {
+    auto bn = resolve_branch_names(repo);
+    if (!bn) {
         std::println(std::cerr, "git-wip: not on a local branch");
         git_libgit2_shutdown();
         return 1;
     }
 
-    const char *head_name = git_reference_name(head_ref.get());
-    std::string work_branch_short = head_name;
-    const std::string heads_prefix = "refs/heads/";
-    if (work_branch_short.substr(0, heads_prefix.size()) == heads_prefix)
-        work_branch_short = work_branch_short.substr(heads_prefix.size());
-
-    std::string wip_branch = "refs/wip/" + work_branch_short;
-
-    spdlog::debug("log: work_branch='{}' wip_branch='{}'", work_branch_short, wip_branch);
+    spdlog::debug("log: work_branch='{}' wip_ref='{}'", bn->work_branch, bn->wip_ref);
 
     // -----------------------------------------------------------------------
-    // 4. Resolve work_last and wip_last
+    // 4. Resolve work_last and wip_last OIDs
     // -----------------------------------------------------------------------
-    git_oid work_last_oid{};
-    if (git_reference_name_to_id(&work_last_oid, repo, head_name) < 0) {
-        std::println(std::cerr, "git-wip: '{}' branch has no commits.", work_branch_short);
+    auto work_last = resolve_oid(repo, bn->work_ref);
+    if (!work_last) {
+        std::println(std::cerr, "git-wip: '{}' branch has no commits.", bn->work_branch);
         git_libgit2_shutdown();
         return 1;
     }
 
-    git_oid wip_last_oid{};
-    if (git_reference_name_to_id(&wip_last_oid, repo, wip_branch.c_str()) < 0) {
-        std::println(std::cerr, "git-wip: '{}' has no WIP commits.", work_branch_short);
+    auto wip_last = resolve_oid(repo, bn->wip_ref);
+    if (!wip_last) {
+        std::println(std::cerr, "git-wip: '{}' has no WIP commits.", bn->work_branch);
         git_libgit2_shutdown();
         return 1;
     }
 
     spdlog::debug("log: work_last={} wip_last={}",
-                  git_oid_tostr_s(&work_last_oid), git_oid_tostr_s(&wip_last_oid));
+                  oid_to_hex(&*work_last), oid_to_hex(&*wip_last));
 
     // -----------------------------------------------------------------------
-    // 5. Build and exec git log / git reflog command
-    //
-    //    Mirrors the old shell script:
-    //      git log [--graph] [--stat] [--pretty=...] <wip_last> <work_last> ^<stop>
-    //    where stop = base if base has no parents, else base~1
+    // 5. Build and exec git log / git reflog
     // -----------------------------------------------------------------------
-
-    // Convert OIDs to strings for command-line use
-    char work_last_str[GIT_OID_MAX_HEXSIZE + 1];
-    char wip_last_str[GIT_OID_MAX_HEXSIZE + 1];
-    git_oid_tostr(work_last_str, sizeof(work_last_str), &work_last_oid);
-    git_oid_tostr(wip_last_str, sizeof(wip_last_str), &wip_last_oid);
+    const std::string pretty_fmt =
+        " --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset'"
+        " --abbrev-commit --date=relative";
 
     if (reflog_mode) {
-        // git reflog [--stat] [--pretty=...] <wip_branch>
         std::string cmd = "git reflog";
-        if (stat) cmd += " --stat";
-        if (pretty) {
-            cmd += " --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset'";
-            cmd += " --abbrev-commit --date=relative";
-        }
-        cmd += " ";
-        cmd += wip_branch;
+        if (stat)   cmd += " --stat";
+        if (pretty) cmd += pretty_fmt;
+        cmd += " " + bn->wip_ref;
         spdlog::debug("log: running: {}", cmd);
         git_libgit2_shutdown();
         return std::system(cmd.c_str());
     }
 
-    // Regular log: find merge-base to determine the stop point
+    // Compute merge-base to determine the stop point.
     git_oid base_oid{};
-    if (git_merge_base(&base_oid, repo, &wip_last_oid, &work_last_oid) < 0) {
+    if (git_merge_base(&base_oid, repo, &*wip_last, &*work_last) < 0) {
         std::println(std::cerr, "git-wip: cannot find merge base: {}", git_error_str());
         git_libgit2_shutdown();
         return 1;
     }
 
-    spdlog::debug("log: base={}", git_oid_tostr_s(&base_oid));
+    spdlog::debug("log: base={}", oid_to_hex(&base_oid));
 
-    // Determine stop: if the merge-base commit has a parent, use base~1; else use base itself
+    // stop = base~1 if base has parents, else base itself
     std::string stop_arg;
     {
         CommitGuard base_commit;
+        std::string base_hex = oid_to_hex(&base_oid);
         if (git_commit_lookup(base_commit.ptr(), repo, &base_oid) == 0 &&
-            git_commit_parentcount(base_commit.get()) > 0) {
-            char base_str[GIT_OID_MAX_HEXSIZE + 1];
-            git_oid_tostr(base_str, sizeof(base_str), &base_oid);
-            stop_arg = std::string(base_str) + "~1";
-        } else {
-            char base_str[GIT_OID_MAX_HEXSIZE + 1];
-            git_oid_tostr(base_str, sizeof(base_str), &base_oid);
-            stop_arg = base_str;
-        }
+            git_commit_parentcount(base_commit.get()) > 0)
+            stop_arg = base_hex + "~1";
+        else
+            stop_arg = base_hex;
     }
 
     spdlog::debug("log: stop={}", stop_arg);
 
-    // Build git log command
     std::string cmd = "git log";
-    if (pretty) {
-        cmd += " --graph";
-        cmd += " --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset'";
-        cmd += " --abbrev-commit --date=relative";
-    }
-    if (stat) {
-        cmd += " --stat";
-    }
-
-    // Add any extra file args
-    for (const auto &f : files) {
-        cmd += " -- ";
-        cmd += f;
-    }
-
-    cmd += " ";
-    cmd += wip_last_str;
-    cmd += " ";
-    cmd += work_last_str;
-    cmd += " ^";
-    cmd += stop_arg;
+    if (pretty) cmd += " --graph" + pretty_fmt;
+    if (stat)   cmd += " --stat";
+    for (const auto &f : files) cmd += " -- " + f;
+    cmd += " " + oid_to_hex(&*wip_last);
+    cmd += " " + oid_to_hex(&*work_last);
+    cmd += " ^" + stop_arg;
 
     spdlog::debug("log: running: {}", cmd);
-
     git_libgit2_shutdown();
     return std::system(cmd.c_str());
 }

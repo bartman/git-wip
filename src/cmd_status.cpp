@@ -1,85 +1,16 @@
 #include "cmd_status.hpp"
 #include "git_guards.hpp"
+#include "git_helpers.hpp"
+#include "string_helpers.hpp"
+#include "wip_helpers.hpp"
 
 #include "spdlog/spdlog.h"
 
-#include <chrono>
 #include <cstdlib>
-#include <ctime>
-#include <format>
 #include <iostream>
 #include <print>
 #include <string>
 #include <vector>
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-// Format a git_time as a human-readable relative string, e.g. "5 minutes ago"
-static std::string relative_time(const git_time &gt) {
-    auto commit_tp = std::chrono::system_clock::from_time_t(
-        static_cast<time_t>(gt.time));
-    auto now = std::chrono::system_clock::now();
-    auto diff = std::chrono::duration_cast<std::chrono::seconds>(now - commit_tp);
-
-    auto secs  = diff.count();
-    if (secs < 0) secs = 0;
-
-    if (secs < 90)
-        return std::format("{} seconds ago", secs);
-
-    auto mins = secs / 60;
-    if (mins < 90)
-        return std::format("{} minutes ago", mins);
-
-    auto hours = mins / 60;
-    if (hours < 36)
-        return std::format("{} hours ago", hours);
-
-    auto days = hours / 24;
-    if (days < 14)
-        return std::format("{} days ago", days);
-
-    auto weeks = days / 7;
-    if (weeks < 8)
-        return std::format("{} weeks ago", weeks);
-
-    auto months = days / 30;
-    if (months < 24)
-        return std::format("{} months ago", months);
-
-    return std::format("{} years ago", days / 365);
-}
-
-// First line of a commit message
-static std::string first_line(const char *msg) {
-    if (!msg) return {};
-    std::string s(msg);
-    auto pos = s.find('\n');
-    if (pos != std::string::npos)
-        s.resize(pos);
-    return s;
-}
-
-// Short (7-char) hex OID string
-static std::string short_oid(const git_oid *oid) {
-    char buf[GIT_OID_MAX_HEXSIZE + 1];
-    git_oid_tostr(buf, sizeof(buf), oid);
-    buf[7] = '\0';
-    return buf;
-}
-
-// Full hex OID string
-static std::string full_oid(const git_oid *oid) {
-    char buf[GIT_OID_MAX_HEXSIZE + 1];
-    git_oid_tostr(buf, sizeof(buf), oid);
-    return buf;
-}
-
-// ---------------------------------------------------------------------------
-// StatusCmd::run
-// ---------------------------------------------------------------------------
 
 int StatusCmd::run(int argc, char *argv[]) {
     // -----------------------------------------------------------------------
@@ -121,143 +52,85 @@ int StatusCmd::run(int argc, char *argv[]) {
     git_repository *repo = repo_guard.get();
 
     // -----------------------------------------------------------------------
-    // 3. Resolve work branch and wip branch names
+    // 3. Resolve branch names
     // -----------------------------------------------------------------------
-    ReferenceGuard head_ref;
-    if (git_repository_head(head_ref.ptr(), repo) < 0 ||
-        !git_reference_is_branch(head_ref.get())) {
+    auto bn = resolve_branch_names(repo);
+    if (!bn) {
         std::println(std::cerr, "git-wip: not on a local branch");
         git_libgit2_shutdown();
         return 1;
     }
 
-    const char *head_name = git_reference_name(head_ref.get());
-    std::string work_branch = head_name;
-    const std::string heads_prefix = "refs/heads/";
-    if (work_branch.substr(0, heads_prefix.size()) == heads_prefix)
-        work_branch = work_branch.substr(heads_prefix.size());
-
-    std::string wip_ref = "refs/wip/" + work_branch;
-
-    spdlog::debug("status: work_branch='{}' wip_ref='{}'", work_branch, wip_ref);
+    spdlog::debug("status: work_branch='{}' wip_ref='{}'", bn->work_branch, bn->wip_ref);
 
     // -----------------------------------------------------------------------
     // 4. Resolve work_last and wip_last OIDs
     // -----------------------------------------------------------------------
-    git_oid work_last_oid{};
-    if (git_reference_name_to_id(&work_last_oid, repo, head_name) < 0) {
-        std::println(std::cerr, "git-wip: branch '{}' has no commits", work_branch);
+    auto work_last = resolve_oid(repo, bn->work_ref);
+    if (!work_last) {
+        std::println(std::cerr, "git-wip: branch '{}' has no commits", bn->work_branch);
         git_libgit2_shutdown();
         return 1;
     }
 
-    git_oid wip_last_oid{};
-    if (git_reference_name_to_id(&wip_last_oid, repo, wip_ref.c_str()) < 0) {
-        std::println("branch {} has no wip commits", work_branch);
+    auto wip_last = resolve_oid(repo, bn->wip_ref);
+    if (!wip_last) {
+        std::println("branch {} has no wip commits", bn->work_branch);
         git_libgit2_shutdown();
         return 0;
     }
 
     spdlog::debug("status: work_last={} wip_last={}",
-                  git_oid_tostr_s(&work_last_oid), git_oid_tostr_s(&wip_last_oid));
+                  oid_to_hex(&*work_last), oid_to_hex(&*wip_last));
 
     // -----------------------------------------------------------------------
-    // 5. Walk from wip_last back to (but not including) the merge-base of
-    //    wip_last and work_last, to collect only the WIP-specific commits.
-    //
-    //    Hiding work_last alone is wrong when the work branch has advanced
-    //    past the wip branch: in that case work_last is NOT an ancestor of
-    //    wip_last, so hiding it has no effect and the walk traverses back
-    //    through commits that belong to the work branch history.
-    //
-    //    The merge-base is the point where the two branches diverged (i.e.
-    //    the work branch commit that the wip branch was originally built on).
-    //    Hiding it correctly stops the walk right at that boundary regardless
-    //    of whether the work branch has since advanced.
+    // 5. Collect the WIP-only commits (newest first)
     // -----------------------------------------------------------------------
-    git_oid merge_base_oid{};
-    if (git_merge_base(&merge_base_oid, repo, &wip_last_oid, &work_last_oid) < 0) {
-        std::println(std::cerr, "git-wip: cannot find merge base: {}", git_error_str());
+    auto wip_commits = collect_wip_commits(repo, *wip_last, *work_last);
+    if (!wip_commits) {
+        std::println(std::cerr, "git-wip: cannot enumerate wip commits: {}", git_error_str());
         git_libgit2_shutdown();
         return 1;
     }
 
-    spdlog::debug("status: merge_base={}", git_oid_tostr_s(&merge_base_oid));
-
-    // If work_last is NOT the merge-base, the work branch has advanced past
-    // the point where the wip branch was built.  The next `save` would reset
-    // the wip branch to start from the new work_last, so there are effectively
-    // 0 current wip commits to show.
-    if (!git_oid_equal(&merge_base_oid, &work_last_oid)) {
-        std::println("branch {} has 0 wip commits on {}", work_branch, wip_ref);
-        git_libgit2_shutdown();
-        return 0;
-    }
-
-    // work_last == merge_base: wip commits are stacked on top of work_last.
-    // Walk from wip_last and hide work_last (== merge_base) to collect only
-    // the wip-specific commits.
-    RevwalkGuard walk;
-    if (git_revwalk_new(walk.ptr(), repo) < 0) {
-        std::println(std::cerr, "git-wip: cannot create revwalk: {}", git_error_str());
-        git_libgit2_shutdown();
-        return 1;
-    }
-
-    git_revwalk_sorting(walk.get(), GIT_SORT_TOPOLOGICAL);
-    git_revwalk_push(walk.get(), &wip_last_oid);
-    git_revwalk_hide(walk.get(), &work_last_oid);
-
-    std::vector<git_oid> wip_commits; // newest first
-    {
-        git_oid oid{};
-        while (git_revwalk_next(&oid, walk.get()) == 0)
-            wip_commits.push_back(oid);
-    }
-
-    spdlog::debug("status: {} wip commit(s)", wip_commits.size());
+    spdlog::debug("status: {} wip commit(s)", wip_commits->size());
 
     // -----------------------------------------------------------------------
     // 6. Summary line
     // -----------------------------------------------------------------------
     std::println("branch {} has {} wip commit{} on {}",
-                 work_branch,
-                 wip_commits.size(),
-                 wip_commits.size() == 1 ? "" : "s",
-                 wip_ref);
+                 bn->work_branch,
+                 wip_commits->size(),
+                 wip_commits->size() == 1 ? "" : "s",
+                 bn->wip_ref);
     std::cout.flush();
 
     // -----------------------------------------------------------------------
-    // 7. -l / --list  — one line per commit
-    //    -f / --files  — diff --stat of wip changes
-    //    -l -f combined — per-commit diff --stat interleaved with list lines
+    // 7. Optional detail modes
     // -----------------------------------------------------------------------
     if (list_mode) {
-        for (const auto &oid : wip_commits) {
+        for (const auto &oid : *wip_commits) {
             CommitGuard commit;
             if (git_commit_lookup(commit.ptr(), repo, &oid) < 0) continue;
 
-            std::string sha     = short_oid(&oid);
-            std::string subject = first_line(git_commit_message(commit.get()));
             const git_signature *author = git_commit_author(commit.get());
-            std::string age     = relative_time(author->when);
-
-            std::println("{} - {} ({})", sha, subject, age);
+            std::println("{} - {} ({})",
+                         oid_to_short_hex(&oid),
+                         first_line(git_commit_message(commit.get())),
+                         relative_time(author->when.time));
             std::cout.flush();
 
             if (files_mode) {
                 // per-commit diff --stat against its parent
-                std::string wip_full = full_oid(&oid);
-                std::string cmd = "git diff --stat " + wip_full + "^ " + wip_full;
-                std::system(cmd.c_str());
+                std::string hex = oid_to_hex(&oid);
+                std::system(("git diff --stat " + hex + "^ " + hex).c_str());
             }
         }
     } else if (files_mode) {
-        // -f only: diff --stat from branch HEAD to latest wip commit
-        std::string work_full = full_oid(&work_last_oid);
-        std::string wip_full  = full_oid(&wip_last_oid);
-        std::string cmd = "git diff --stat " + work_full + " " + wip_full;
-        std::system(cmd.c_str());
+        // diff --stat from work branch HEAD to latest wip tip
+        std::system(("git diff --stat " +
+                     oid_to_hex(&*work_last) + " " +
+                     oid_to_hex(&*wip_last)).c_str());
     }
 
     git_libgit2_shutdown();
