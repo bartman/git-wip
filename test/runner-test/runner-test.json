@@ -1,0 +1,9 @@
+[
+    [ "${TOOL}", "${ONE}", "${TWO}", "${THREE}", "${FOUR}" ],
+    [ "${TOOL}", "${ONE}----${TWO}}}}}${THREE}{{{{${FOUR}" ],
+    [ "${TOOL}", "${ONE}${TWO}${THREE}${FOUR}" ],
+    [ "${TOOL}", "ONE", "${TWO}", "${THREE}", "${FOUR}" ],
+    [ "${TOOL}", "${ONE}", "TWO", "${THREE}", "${FOUR}" ],
+    [ "${TOOL}", "${ONE}", "${TWO}", "${THREE}", "FOUR" ],
+    [ "${TOOL}", "ONE", "TWO", "THREE", "FOUR" ]
+]

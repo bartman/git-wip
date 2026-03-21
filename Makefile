@@ -30,11 +30,18 @@ BUILD ?= build
 TYPE ?= $(if ${CURRENT_TYPE},${CURRENT_TYPE},${DEFAULT_TYPE})
 NPROC ?= $(shell nproc || echo 1)
 
+GIT_WIP      = ${BUILD}/src/git-wip
+CAP_RUN_SH   = test/cap-run.sh
+RUNNER_PY    = test/runner.py
+SMOKE_JSON   = test/smoke/smoke.json
+SMOKE_VARS   = GIT_WIP=${GIT_WIP} RUNTIME=1
+SMOKE_OUT    = ${BUILD}/test/smoke/smoke.log
+
 all: ## [default] build the project (uses TYPE={Release,Debug})
 	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}"
 	${Q}${CMAKE} --build "${BUILD}" --config "${TYPE}" --parallel "${NPROC}"
 	${Q}ln -fs "${BUILD}"/compile_commands.json compile_commands.json
-	${Q}ln -fs "${BUILD}/git-wip" .
+	${Q}ln -fs "${GIT_WIP}" .
 
 clean: ## clean out the build directory
 	${Q}${CMAKE} --build "${BUILD}" --target clean
@@ -54,13 +61,6 @@ test: ## run unit tests (with ctest, uses REBUILD={true,false})
 	  sed -r -i -e "s,$(shell pwd),,g" "$${xml}" ; \
 	done
 	${Q}echo " ✅ Unit tests complete."
-
-GIT_WIP      = ${BUILD}/git-wip
-CAP_RUN_SH   = test/cap-run.sh
-RUNNER_PY    = test/runner.py
-SMOKE_JSON   = test/smoke/smoke.json
-SMOKE_VARS   = GIT_WIP=${GIT_WIP} RUNTIME=1
-SMOKE_OUT    = ${BUILD}/test/smoke/smoke.log
 
 smoke: ## run smoke test (uses REBUILD={true,false})
 	${Q}$(if $(filter 1 yes true YES TRUE,${REBUILD}),rm -rf "${BUILD}"/)

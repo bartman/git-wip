@@ -28,26 +28,9 @@ include(FindPkgConfig)
 
 pkg_check_modules(LIBGIT2 REQUIRED libgit2)
 
-# Your executable
-add_executable(git-wip
-    src/main.cpp
-    src/cmd_delete.cpp
-    src/cmd_log.cpp
-    src/cmd_save.cpp
-    src/cmd_status.cpp
-)
+enable_testing()
+add_subdirectory(test/unit)
+add_subdirectory(test/runner-test)
 
-target_include_directories(git-wip PRIVATE
-    ${clipp_SOURCE_DIR}/include
-    ${LIBGIT2_INCLUDE_DIRS}
-)
-
-target_link_libraries(git-wip PRIVATE
-    spdlog::spdlog
-    ${LIBGIT2_LIBRARIES}
-)
-
-target_link_directories(git-wip PRIVATE
-    ${LIBGIT2_LIBRARY_DIRS}
-)
-
+# the executable
+add_subdirectory(src)

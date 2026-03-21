@@ -1,6 +1,7 @@
 *~
 build/
 .cache/
+git-wip
 
 ### C++
 # Prerequisites

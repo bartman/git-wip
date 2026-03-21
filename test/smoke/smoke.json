@@ -1,0 +1,5 @@
+[
+  [ "${GIT_WIP}", "-h" ],
+  [ "${GIT_WIP}", "--help" ],
+  [ "${GIT_WIP}", "help" ]
+]

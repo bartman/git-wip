@@ -1,0 +1,14 @@
+Executing: echo 1 22 333 4444
+1 22 333 4444
+Executing: echo 1----22}}}}333{{{{4444
+1----22}}}}333{{{{4444
+Executing: echo 1223334444
+1223334444
+Executing: echo ONE 22 333 4444
+ONE 22 333 4444
+Executing: echo 1 TWO 333 4444
+1 TWO 333 4444
+Executing: echo 1 22 333 FOUR
+1 22 333 FOUR
+Executing: echo ONE TWO THREE FOUR
+ONE TWO THREE FOUR
