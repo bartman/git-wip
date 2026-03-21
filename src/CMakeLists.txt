@@ -20,3 +20,8 @@ target_link_directories(git-wip PRIVATE
     ${LIBGIT2_LIBRARY_DIRS}
 )
 
+if(WIP_HAVE_STD_PRINT)
+    target_compile_definitions(git-wip PRIVATE WIP_HAVE_STD_PRINT)
+else()
+    target_link_libraries(git-wip PRIVATE fmt::fmt)
+endif()

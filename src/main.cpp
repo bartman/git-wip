@@ -6,7 +6,7 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <print>
+#include "print_compat.hpp"
 #include <format>
 #include <sstream> // Required for std::ostringstream
 #include <map>

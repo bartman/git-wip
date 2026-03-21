@@ -1,6 +1,6 @@
 #include "cmd_delete.hpp"
 #include "clipp.h"
-#include <print>
+#include "print_compat.hpp"
 #include <format>
 #include <sstream> // Required for std::ostringstream
 #include <vector>

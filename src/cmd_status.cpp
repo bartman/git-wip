@@ -8,7 +8,7 @@
 
 #include <cstdlib>
 #include <iostream>
-#include <print>
+#include "print_compat.hpp"
 #include <string>
 #include <vector>
 

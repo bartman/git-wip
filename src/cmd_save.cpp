@@ -9,7 +9,7 @@
 #include <cstdlib>
 #include <format>
 #include <iostream>
-#include <print>
+#include "print_compat.hpp"
 #include <string>
 #include <vector>
 

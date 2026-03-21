@@ -86,7 +86,7 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: bash dependencies.sh --compiler=${{ matrix.compiler }}
 
-      - name: Cache CMake FetchContent (spdlog, clipp)
+      - name: Cache CMake FetchContent (spdlog, clipp, fmt)
         uses: actions/cache@v4
         with:
           path: build/_deps
