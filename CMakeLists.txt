@@ -31,6 +31,7 @@ pkg_check_modules(LIBGIT2 REQUIRED libgit2)
 enable_testing()
 add_subdirectory(test/unit)
 add_subdirectory(test/runner-test)
+add_subdirectory(test/legacy)
 
 # the executable
 add_subdirectory(src)
