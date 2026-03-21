@@ -15,6 +15,8 @@
 #include "clipp.h"
 #include "spdlog/spdlog.h"
 
+bool g_wip_debug = false;
+
 void print_main_help(const std::vector<std::unique_ptr<Command>>& commands, std::ostream &os = std::cout) {
     std::println(os, "Manage Work In Progress\n");
     std::println(os, "git-wip <command> [ --help | command options ]\n");
@@ -30,13 +32,17 @@ int main(int argc, char *argv[]) {
     if (wip_debug != nullptr && wip_debug[0] != '\0' && wip_debug[0] != '0') {
         spdlog::set_level(spdlog::level::debug);
         spdlog::debug("Debug logging enabled via WIP_DEBUG environment variable");
+        g_wip_debug = true;
     }
 
     std::vector<std::unique_ptr<Command>> commands;
     commands.push_back(std::make_unique<StatusCmd>());
     commands.push_back(std::make_unique<LogCmd>());
     commands.push_back(std::make_unique<SaveCmd>());
-    commands.push_back(std::make_unique<DeleteCmd>());
+    if (g_wip_debug) {
+        // delete is not yet implemented
+        commands.push_back(std::make_unique<DeleteCmd>());
+    }
 
     std::map<std::string, Command*> command_map;
     for (const auto& cmd : commands) {
