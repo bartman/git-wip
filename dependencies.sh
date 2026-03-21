@@ -13,14 +13,17 @@ function best() {
 }
 
 set -e -x
+$SUDO apt update
 $SUDO apt install -y \
     cmake \
     g++ \
     gcc \
     git \
+    pkg-config \
     googletest \
     libgmock-dev \
     libgtest-dev \
+    libgit2-dev \
     make \
     ninja-build \
 
