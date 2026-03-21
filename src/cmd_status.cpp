@@ -162,12 +162,41 @@ int StatusCmd::run(int argc, char *argv[]) {
                   git_oid_tostr_s(&work_last_oid), git_oid_tostr_s(&wip_last_oid));
 
     // -----------------------------------------------------------------------
-    // 5. Walk from wip_last back to (but not including) work_last to collect
-    //    the WIP commits in order (newest → oldest).
+    // 5. Walk from wip_last back to (but not including) the merge-base of
+    //    wip_last and work_last, to collect only the WIP-specific commits.
     //
-    //    The wip branch is a linear chain rooted at work_last, so we push
-    //    wip_last as start and hide work_last (and everything behind it).
+    //    Hiding work_last alone is wrong when the work branch has advanced
+    //    past the wip branch: in that case work_last is NOT an ancestor of
+    //    wip_last, so hiding it has no effect and the walk traverses back
+    //    through commits that belong to the work branch history.
+    //
+    //    The merge-base is the point where the two branches diverged (i.e.
+    //    the work branch commit that the wip branch was originally built on).
+    //    Hiding it correctly stops the walk right at that boundary regardless
+    //    of whether the work branch has since advanced.
     // -----------------------------------------------------------------------
+    git_oid merge_base_oid{};
+    if (git_merge_base(&merge_base_oid, repo, &wip_last_oid, &work_last_oid) < 0) {
+        std::println(std::cerr, "git-wip: cannot find merge base: {}", git_error_str());
+        git_libgit2_shutdown();
+        return 1;
+    }
+
+    spdlog::debug("status: merge_base={}", git_oid_tostr_s(&merge_base_oid));
+
+    // If work_last is NOT the merge-base, the work branch has advanced past
+    // the point where the wip branch was built.  The next `save` would reset
+    // the wip branch to start from the new work_last, so there are effectively
+    // 0 current wip commits to show.
+    if (!git_oid_equal(&merge_base_oid, &work_last_oid)) {
+        std::println("branch {} has 0 wip commits on {}", work_branch, wip_ref);
+        git_libgit2_shutdown();
+        return 0;
+    }
+
+    // work_last == merge_base: wip commits are stacked on top of work_last.
+    // Walk from wip_last and hide work_last (== merge_base) to collect only
+    // the wip-specific commits.
     RevwalkGuard walk;
     if (git_revwalk_new(walk.ptr(), repo) < 0) {
         std::println(std::cerr, "git-wip: cannot create revwalk: {}", git_error_str());
