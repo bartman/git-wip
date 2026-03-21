@@ -50,7 +50,7 @@ distclean: ## remove build directory completely
 	${Q}rm -rf "${BUILD}"/
 
 help:
-	${Q}python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
+	${Q}python3 -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
 test: ## run unit tests (with ctest, uses REBUILD={true,false})
 	${Q}$(if $(filter 1 yes true YES TRUE,${REBUILD}),rm -rf "${BUILD}"/)
