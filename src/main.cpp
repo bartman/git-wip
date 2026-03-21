@@ -4,6 +4,7 @@
 #include "cmd_save.hpp"
 #include "cmd_status.hpp"
 
+#include <cstdlib>
 #include <iostream>
 #include <print>
 #include <format>
@@ -24,6 +25,13 @@ void print_main_help(const std::vector<std::unique_ptr<Command>>& commands, std:
 }
 
 int main(int argc, char *argv[]) {
+    // Check WIP_DEBUG environment variable for debug logging
+    const char* wip_debug = std::getenv("WIP_DEBUG");
+    if (wip_debug != nullptr && wip_debug[0] != '\0' && wip_debug[0] != '0') {
+        spdlog::set_level(spdlog::level::debug);
+        spdlog::debug("Debug logging enabled via WIP_DEBUG environment variable");
+    }
+
     std::vector<std::unique_ptr<Command>> commands;
     commands.push_back(std::make_unique<StatusCmd>());
     commands.push_back(std::make_unique<LogCmd>());
