@@ -29,6 +29,9 @@ REBUILD ?= false
 BUILD ?= build
 TYPE ?= $(if ${CURRENT_TYPE},${CURRENT_TYPE},${DEFAULT_TYPE})
 NPROC ?= $(shell nproc || echo 1)
+CC ?= $(shell which clang gcc cc | head -n1)
+CXX ?= $(shell which clang g++ c++ | head -n1)
+$(info ## TYPE=${TYPE} CC=${CC} CXX=${CXX})
 
 GIT_WIP      = ${BUILD}/src/git-wip
 CAP_RUN_SH   = test/cap-run.sh
@@ -57,9 +60,6 @@ test: ## run unit tests (with ctest, uses REBUILD={true,false})
 	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}"
 	${Q}${CMAKE} --build "${BUILD}" --config "${TYPE}" --parallel "${NPROC}"
 	${Q}cd "${BUILD}"/ && ctest -C "${TYPE}" $(if ${CI},--output-on-failure -VV)
-	${Q}for xml in ${BUILD}/*_report.xml ; do \
-	  sed -r -i -e "s,$(shell pwd),,g" "$${xml}" ; \
-	done
 	${Q}echo " ✅ Unit tests complete."
 
 smoke: ## run smoke test (uses REBUILD={true,false})
