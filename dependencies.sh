@@ -94,6 +94,7 @@ packages=(
     "${compiler_packages[@]}"
     git
     pkg-config
+    python3
     googletest
     libgmock-dev
     libgtest-dev

@@ -122,11 +122,19 @@ jobs:
           CI:  "1"
         run: make TYPE=${{ matrix.build_type }} smoke
 
+      - name: Compute artifact name
+        if: failure()
+        id: artifact-name
+        run: |
+          # Colons and slashes are not allowed in artifact names; replace with dashes.
+          raw="test-artifacts-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}"
+          echo "name=${raw//[:\\/]/-}" >> "$GITHUB_OUTPUT"
+
       - name: Upload test artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-artifacts-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}
+          name: ${{ steps.artifact-name.outputs.name }}
           path: |
             build/test/
             build/Testing/
