@@ -1,6 +1,9 @@
 #!/bin/bash
 source "$(dirname "$0")/lib.sh"
 
+# these tests are here to make sure we behave the same way as the legacy git-wip shell implementation
+# do not add anymore tests here.  Create new tests in test/cli/test_*.sh instead.
+
 create_test_repo
 RUN "echo 1 >README"
 RUN git add README

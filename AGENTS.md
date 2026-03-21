@@ -8,7 +8,6 @@
 - manage/install dependencies with `dependencies.sh` script
 - unit tests go into `test/unit/test_*.cpp`
 - old scripts are in `Attic/` subdirectory, we try to be backward compatible (at least for vim/ emacs/ sublime/ plugins)
-- the old tests are in `test/legacy-tests.sh`, set `GIT_WIP` to the location of the binary when running them
 
 ## Old Shell Script Analysis (Attic/git-wip)
 
