@@ -1,9 +1,8 @@
 #include "cmd_save.hpp"
+#include "git_guards.hpp"
 
 #include "clipp.h"
 #include "spdlog/spdlog.h"
-
-#include <git2.h>
 
 #include <cstdlib>
 #include <filesystem>
@@ -11,82 +10,8 @@
 #include <format>
 #include <iostream>
 #include <print>
-#include <sstream>
 #include <string>
 #include <vector>
-
-// ---------------------------------------------------------------------------
-// RAII wrappers for libgit2 objects
-// ---------------------------------------------------------------------------
-
-struct RepoGuard {
-    git_repository *m_repo = nullptr;
-    ~RepoGuard() {
-        if (m_repo)
-            git_repository_free(m_repo);
-    }
-    git_repository *get() { return m_repo; }
-    git_repository **ptr() { return &m_repo; }
-};
-
-struct IndexGuard {
-    git_index *m_idx = nullptr;
-    ~IndexGuard() {
-        if (m_idx)
-            git_index_free(m_idx);
-    }
-    git_index *get() { return m_idx; }
-    git_index **ptr() { return &m_idx; }
-};
-
-struct TreeGuard {
-    git_tree *m_tree = nullptr;
-    ~TreeGuard() {
-        if (m_tree)
-            git_tree_free(m_tree);
-    }
-    git_tree *get() { return m_tree; }
-    git_tree **ptr() { return &m_tree; }
-};
-
-struct CommitGuard {
-    git_commit *m_commit = nullptr;
-    ~CommitGuard() {
-        if (m_commit)
-            git_commit_free(m_commit);
-    }
-    git_commit *get() { return m_commit; }
-    git_commit **ptr() { return &m_commit; }
-};
-
-struct ReferenceGuard {
-    git_reference *m_ref = nullptr;
-    ~ReferenceGuard() {
-        if (m_ref)
-            git_reference_free(m_ref);
-    }
-    git_reference *get() { return m_ref; }
-    git_reference **ptr() { return &m_ref; }
-};
-
-struct SignatureGuard {
-    git_signature *m_sig = nullptr;
-    ~SignatureGuard() {
-        if (m_sig)
-            git_signature_free(m_sig);
-    }
-    git_signature *get() { return m_sig; }
-    git_signature **ptr() { return &m_sig; }
-};
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-static std::string git_error_str() {
-    const git_error *e = git_error_last();
-    return e ? e->message : "(unknown error)";
-}
 
 // ---------------------------------------------------------------------------
 // SaveCmd implementation

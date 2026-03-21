@@ -1,56 +1,14 @@
 #include "cmd_log.hpp"
+#include "git_guards.hpp"
 
 #include "spdlog/spdlog.h"
 
-#include <git2.h>
-
 #include <cstdlib>
-#include <filesystem>
 #include <format>
 #include <iostream>
 #include <print>
-#include <sstream>
 #include <string>
 #include <vector>
-
-// ---------------------------------------------------------------------------
-// RAII helpers (shared pattern)
-// ---------------------------------------------------------------------------
-
-struct RepoGuardL {
-    git_repository *m_repo = nullptr;
-    ~RepoGuardL() {
-        if (m_repo)
-            git_repository_free(m_repo);
-    }
-    git_repository *get() { return m_repo; }
-    git_repository **ptr() { return &m_repo; }
-};
-
-struct ReferenceGuardL {
-    git_reference *m_ref = nullptr;
-    ~ReferenceGuardL() {
-        if (m_ref)
-            git_reference_free(m_ref);
-    }
-    git_reference *get() { return m_ref; }
-    git_reference **ptr() { return &m_ref; }
-};
-
-struct CommitGuardL {
-    git_commit *m_commit = nullptr;
-    ~CommitGuardL() {
-        if (m_commit)
-            git_commit_free(m_commit);
-    }
-    git_commit *get() { return m_commit; }
-    git_commit **ptr() { return &m_commit; }
-};
-
-static std::string git_error_str_l() {
-    const git_error *e = git_error_last();
-    return e ? e->message : "(unknown error)";
-}
 
 // ---------------------------------------------------------------------------
 // LogCmd::run
@@ -99,9 +57,9 @@ int LogCmd::run(int argc, char *argv[]) {
     // -----------------------------------------------------------------------
     git_libgit2_init();
 
-    RepoGuardL repo_guard;
+    RepoGuard repo_guard;
     if (git_repository_open_ext(repo_guard.ptr(), ".", 0, nullptr) < 0) {
-        std::println(std::cerr, "git-wip: not a git repository: {}", git_error_str_l());
+        std::println(std::cerr, "git-wip: not a git repository: {}", git_error_str());
         git_libgit2_shutdown();
         return 1;
     }
@@ -110,7 +68,7 @@ int LogCmd::run(int argc, char *argv[]) {
     // -----------------------------------------------------------------------
     // 3. Get work branch and wip branch
     // -----------------------------------------------------------------------
-    ReferenceGuardL head_ref;
+    ReferenceGuard head_ref;
     if (git_repository_head(head_ref.ptr(), repo) < 0 ||
         !git_reference_is_branch(head_ref.get())) {
         std::println(std::cerr, "git-wip: not on a local branch");
@@ -180,7 +138,7 @@ int LogCmd::run(int argc, char *argv[]) {
     // Regular log: find merge-base to determine the stop point
     git_oid base_oid{};
     if (git_merge_base(&base_oid, repo, &wip_last_oid, &work_last_oid) < 0) {
-        std::println(std::cerr, "git-wip: cannot find merge base: {}", git_error_str_l());
+        std::println(std::cerr, "git-wip: cannot find merge base: {}", git_error_str());
         git_libgit2_shutdown();
         return 1;
     }
@@ -190,7 +148,7 @@ int LogCmd::run(int argc, char *argv[]) {
     // Determine stop: if the merge-base commit has a parent, use base~1; else use base itself
     std::string stop_arg;
     {
-        CommitGuardL base_commit;
+        CommitGuard base_commit;
         if (git_commit_lookup(base_commit.ptr(), repo, &base_oid) == 0 &&
             git_commit_parentcount(base_commit.get()) > 0) {
             char base_str[GIT_OID_MAX_HEXSIZE + 1];
