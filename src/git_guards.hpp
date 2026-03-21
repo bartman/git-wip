@@ -71,6 +71,16 @@ struct SignatureGuard {
     git_signature **ptr() { return &m_sig; }
 };
 
+struct RevwalkGuard {
+    git_revwalk *m_walk = nullptr;
+    ~RevwalkGuard() {
+        if (m_walk)
+            git_revwalk_free(m_walk);
+    }
+    git_revwalk *get() { return m_walk; }
+    git_revwalk **ptr() { return &m_walk; }
+};
+
 // ---------------------------------------------------------------------------
 // Convenience helper: return the last libgit2 error message as a std::string.
 // ---------------------------------------------------------------------------
