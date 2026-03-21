@@ -34,6 +34,7 @@ all: ## [default] build the project (uses TYPE={Release,Debug})
 	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}"
 	${Q}${CMAKE} --build "${BUILD}" --config "${TYPE}" --parallel "${NPROC}"
 	${Q}ln -fs "${BUILD}"/compile_commands.json compile_commands.json
+	${Q}ln -fs "${BUILD}/git-wip" .
 
 clean: ## clean out the build directory
 	${Q}${CMAKE} --build "${BUILD}" --target clean
