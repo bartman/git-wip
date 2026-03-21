@@ -1,6 +1,7 @@
 *~
 build/
 .cache/
+.opencode/
 git-wip
 
 ### C++

@@ -84,4 +84,44 @@ git-wip delete [ <file>... ]
 ```
 
 
+--------------------------------------------------------------------------------------------
+
+this is a c++ rewrite of a shell-script project git-wip.
+
+the README currently describes how the shell script operated.
+the main idea will remain; user will invoke a command like...
+
+   git wip save "description"
+
+which will maintain a "wip" branch for the "work in progress".
+
+get familiar with @README.md
+get familar with the old script @Attic/git-wip
+note that the old script was incomplete (some features were not coded)
+
+you will manage AGENTS.md where you will record all you learn from reviewing the old code and the current direction.
+
+if needed, you will use @dependencies.sh to install missing packages.
+
+you will build using `make`
+you will test using `make test` and `make smoke`
+
+for any standalone helper functions you will create unit tests in
+test/unit/test_<category>.cpp and update test/unit/CMakeLists.txt
+
+like I said this is a rewrite to c++23.  best practices.
+the original work was started using @src/prompt.md
+I'd say that is done now.
+
+we need to move to the request.  I'd like you to work on:
+
+- go through Attic/git-wip (the old implementation)
+- document precisely how it works (in AGENTS.md)
+- we need to remain backward compatible (at least for the commands that are invoked by the plugins: vim/ sublime/ emacs/ subdirs)
+
+no further changes beyond this for now.
+
+--------------------------------------------------------------------------------------------
+
+
 
