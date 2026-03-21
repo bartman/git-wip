@@ -1,132 +1,198 @@
 # About
 
-`git-wip` is a script that will manage **Work In Progress** (or **WIP**) branches.
-WIP branches are mostly throw away but identify points of development
-between commits.  The intent is to tie this script into your editor so
-that each time you save your file, the `git-wip` script captures that
-state in git.  `git-wip` also helps you return back to a previous state of
-development.
+`git-wip` manages **Work In Progress** (or **WIP**) branches.
+WIP branches are mostly throw-away but capture points of development
+between commits.  The intent is to tie `git-wip` into your editor so
+that each time you save a file the current working-tree state is
+snapshotted in git.  `git-wip` also helps you return to a previous
+state of development.
 
 Latest `git-wip` can be obtained from [github.com](http://github.com/bartman/git-wip).
 `git-wip` was written by [Bart Trojanowski](mailto:bart@jukie.net).
 You can find out more from the original [blog post](http://www.jukie.net/bart/blog/save-everything-with-git-wip).
 
-Note: I had originally written a bash script that did this in 2009.
-This repo is a C++ rewrite of that concept, tag [v0.2](https://github.com/bartman/git-wip/releases/tag/v0.2) represents the last bash script version.
-The script was moved to "Attic" and is no longer maintained.
+> **Note:** `git-wip` was originally a bash script (2009).
+> This repository is a C++ rewrite; tag [v0.2](https://github.com/bartman/git-wip/releases/tag/v0.2)
+> is the last bash version.  The script was moved to `Attic/` and is no longer maintained.
+
+---
 
 ## TL;DR
 
 ```sh
 $ make
-$ sudo make install     # OR   make install DEST=~/bin/
-$ cd project ; git wip
+$ ./dependencies.sh         # assumes you're on a Debian-based distro, and you have `sudo`
+$ make install              # installs to ~/.local by default
+$ cd my-project
+$ git wip                   # snapshot working tree → wip/master
 ```
 
-# WIP branches
+---
 
-Wip branches are named after the branch that is being worked on, but are
-prefixed with 'wip/'.  For example if you are working on a branch named
-'feature' then the `git-wip` script will only manipulate the 'wip/feature'
-branch.
+## How WIP branches work
 
-When you run `git-wip` for the first time, it will capture all changes to
-tracked files and all untracked (but not ignored) files, create a
-commit, and make a new wip/*topic* branch point to it.
+WIP branches are named after the current branch, prefixed with `wip/`.
+If you are working on `feature`, the WIP branch is `wip/feature` (stored
+as `refs/wip/feature`).
 
-```
-    --- * --- * --- *          <-- topic
-                     \
-                      *        <-- wip/topic
-```
-
-The next invocation of `git-wip` after a commit is made will continue to
-evolve the work from the last wip/*topic* point.
+**First snapshot** — creates a commit on `wip/<branch>` rooted at the
+current branch HEAD:
 
 ```
-    --- * --- * --- *          <-- topic
-                     \
-                      *
-                       \
-                        *      <-- wip/topic
+--- * --- * --- *          ← feature
+                 \
+                  W        ← wip/feature
 ```
 
-When `git-wip` is invoked after a commit is made, the state of the
-wip/*topic* branch will be reset back to your *topic* branch and the new
-changes to the working tree will be caputred on a new commit.
+**Subsequent snapshots** — stacks new WIP commits on top:
 
 ```
-    --- * --- * --- * --- *    <-- topic
-                     \     \
-                      *     *  <-- wip/topic
-                       \
-                        *
+--- * --- * --- *          ← feature
+                 \
+                  W
+                   \
+                    W      ← wip/feature
 ```
 
-While the old wip/*topic* work is no longer accessible directly, it can
-always be recovered from git-reflog.  In the above example you could use
-`wip/topic@{1}` to access the dangling references.
+**After a real commit** — the next `git wip` detects that the work branch
+has advanced and resets the WIP branch to start from the new HEAD:
 
-# git-wip command
+```
+--- * --- * --- * --- *    ← feature
+                 \     \
+                  W     W  ← wip/feature
+                   \
+                    W  (reachable via reflog as wip/feature@{1})
+```
 
-The `git-wip` command can be invoked in several different ways.
+Old WIP commits are never deleted; they remain reachable through
+`git reflog show wip/<branch>`.
 
-* `git wip`
-  
-  In this mode, `git-wip` will create a new commit on the wip/*topic*
-  branch (creating it if needed) as described above.
+---
 
-* `git wip save "description"`
-  
-  Similar to `git wip`, but allows for a custom commit message.
+## Commands
 
-* `git wip log`
-  
-  Show the list of the work that leads upto the last WIP commit.  This
-  is similar to invoking:
-  
-  `git log --stat wip/$branch...$(git merge-base wip/$branch $branch)`
+### `git wip`
 
-# Installation
+Snapshot the working tree with the default message `"WIP"`.
+Equivalent to `git wip save "WIP"`.
 
-Download the script from the GitHub page:
+### `git wip save [<message>] [options] [-- <file>...]`
+
+Create a new WIP commit.
+
+| Option | Description |
+|---|---|
+| `-e`, `--editor` | Quiet mode — exit 0 silently when there are no changes (for editor hooks) |
+| `-u`, `--untracked` | Also capture untracked files |
+| `-i`, `--ignored` | Also capture ignored files |
+| `--no-gpg-sign` | Do not GPG-sign the commit (overrides `commit.gpgSign = true`) |
+
+If `<file>...` arguments are given, only those files are snapshotted.
+Otherwise all tracked files are updated.
+
+### `git wip status [-l] [-f]`
+
+Show the status of the WIP branch for the current work branch.
+
+```
+$ git wip status
+branch master has 5 wip commits on refs/wip/master
+```
+
+| Option | Description |
+|---|---|
+| `-l`, `--list` | List each WIP commit: short SHA, subject, and age |
+| `-f`, `--files` | Show a `git diff --stat` of changes relative to the work branch HEAD |
+
+`-l` and `-f` can be combined; each commit line is then followed by its
+own per-commit diff stat.
+
+```
+$ git wip status -l
+branch master has 5 wip commits on refs/wip/master
+1d146bf - WIP (53 minutes ago)
+a3f901c - save file.c (50 minutes ago)
+...
+
+$ git wip status -f
+branch master has 5 wip commits on refs/wip/master
+ src/main.c | 14 ++++++++------
+ 1 file changed, 8 insertions(+), 6 deletions(-)
+
+$ git wip status -l -f
+branch master has 5 wip commits on refs/wip/master
+1d146bf - WIP (53 minutes ago)
+ src/main.c |  2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+...
+```
+
+### `git wip log [options]`
+
+Show the git log for the current WIP branch.
+
+| Option | Description |
+|---|---|
+| `-p`, `--pretty` | Compact colourised graph output |
+| `-s`, `--stat` | Include per-commit diff stat |
+| `-r`, `--reflog` | Show the reflog instead of the commit graph (useful for recovering old WIP stacks) |
+
+---
+
+## Building
+
+Requires: a C++23 compiler, CMake ≥ 3.26, Ninja, and `libgit2-dev`.
 
 ```sh
-$ git clone git://github.com/bartman/git-wip.git
+$ ./dependencies.sh # install packages needed to build
+$ make              # Release build → build/src/git-wip
+$ make TYPE=Debug   # Debug build
+$ make test         # Build + run all tests (unit + CLI integration)
+$ make install      # Install to ~/.local  (override with PREFIX=...)
 ```
 
-Add `git-wip` to your `$PATH`:
+Dependencies (`spdlog`, `clipp`) are fetched automatically by CMake via
+`FetchContent`.  `libgit2` must be installed system-wide (e.g.
+`apt install libgit2-dev`).
+
+---
+
+## Installation
 
 ```sh
-$ mkdir -p ~/bin
-$ cp git-wip/git-wip ~/bin/
+$ git clone https://github.com/bartman/git-wip.git
+$ cd git-wip
+$ ./dependencies.sh
+$ make
+$ make install          # → ~/.local/bin/git-wip
 ```
 
-# editor hooking
+Or copy the binary manually:
 
-To use `git-wip` effectively, you should tie it into your editor so you
-don't have to remember to run `git-wip` manually.
+```sh
+$ cp build/src/git-wip ~/bin/
+```
 
-## vim
+---
 
-To add `git-wip` support to vim you can install the provided vim plugin.  There
-are a few ways to do this.
+## Editor integration
 
-**(1)** If you're using [Vundle](https://github.com/gmarik/Vundle.vim), you
-just need to include the following line in your `.vimrc`.
+### vim
+
+**(1)** With [Vundle](https://github.com/gmarik/Vundle.vim):
 
 ```vim
 Bundle 'bartman/git-wip', {'rtp': 'vim/'}
 ```
 
-**(2)** You can slo copy the `git-wip.vim` into your vim runtime:
+**(2)** Copy the plugin directly:
 
 ```sh
-$ cp vim/plugin/git-wip ~/.vim/plugin/git-wip
+$ cp vim/plugin/git-wip.vim ~/.vim/plugin/
 ```
 
-**(3)** Alternatively, you can add the following to your `.vimrc`.  Doing so
-will make it be invoked after every `:w` operation.
+**(3)** Or add an autocommand to your `.vimrc`:
 
 ```vim
 augroup git-wip
@@ -135,65 +201,45 @@ augroup git-wip
 augroup END
 ```
 
-The `--editor` option puts git-wip into a special mode that will make it
-more quiet and not report errors if there were no changes made to the
-file.
+The `--editor` flag makes `git-wip` silent when there are no changes.
 
-## emacs
+### emacs
 
-To add `git-wip` support to emacs add the following to your `.emacs`. Doing
-so will make it be invoked after every `save-buffer` operation.
+Add to your `.emacs`:
 
 ```lisp
 (load "/{path_to_git-wip}/emacs/git-wip.el")
 ```
 
-Or you may also copy the content of `git-wip.el` in your `.emacs`.
+Or copy the contents of `emacs/git-wip.el` directly into your `.emacs`.
 
-## sublime
+### Sublime Text
 
-A sublime plugin was contributed as well.  You will find it in the `sublime`
-directory.
+A Sublime Text plugin is provided in the `sublime/` directory.
 
-# recovery
+---
 
-Should you discover that you made some really bad changes in your code,
-from which you want to recover, here is what to do.
+## Recovery
 
-First we need to find the commit we are interested in.  If it's the most recent
-then it can be referenced with `wip/master` (assuming your branch is `master`),
-otherwise you may need to find the one you want using:
+Find the commit you want to recover:
 
 ```sh
-$ git reflog show wip/master
+$ git wip status -l           # show current WIP stack
+$ git reflog show wip/master  # show full history including reset points
+$ git log -g -p wip/master    # inspect with diffs
 ```
 
-I personally prefer to inspect the reflog with `git log -g`, and sometimes 
-with `-p` also:
+Check out the files from a WIP commit (HEAD stays where it is):
 
 ```sh
-$ git log -g -p wip/master
+$ git checkout wip/master -- .   # restore entire tree
+$ git checkout <sha> -- path/to/file  # restore a single file
 ```
 
-Once you've picked a commit, you need to checkout the files, note that we are not
-switching the commit that your branch points to (HEAD will continue to reference
-the last real commit on the branch).  We are just checking out the files:
-
-```sh
-$ git checkout ref -- .
-```
-
-Here `ref` could be a SHA1 or `wip/master`.  If you only want to recover one file,
-then use it's path instead of the *dot*.
-
-The changes will be staged in the index and checked out into the working tree, to
-review what the differences are between the last commit, use:
+The changes land in the index and working tree.  Review with:
 
 ```sh
 $ git diff --cached
 ```
 
-If you want, you can unstage all or some with `git reset`, optionally specifying a
-filename to unstage.  You can then stage them again using `git add` or `git add -p`.
-Finally, when you're happy with the changes, commit them.
-
+Adjust with `git reset` / `git add -p` as needed, then commit.
