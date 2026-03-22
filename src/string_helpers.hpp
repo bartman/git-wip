@@ -22,6 +22,19 @@ inline std::string strip_prefix(std::string_view s, std::string_view prefix) {
 }
 
 // ---------------------------------------------------------------------------
+// strip_prefix_inplace
+//
+// If `s` starts with `prefix`, remove it in-place and return true.
+// Otherwise leave `s` unchanged and return false.
+// ---------------------------------------------------------------------------
+inline bool strip_prefix_inplace(std::string &s, std::string_view prefix) {
+    if (!std::string_view(s).starts_with(prefix))
+        return false;
+    s.erase(0, prefix.size());
+    return true;
+}
+
+// ---------------------------------------------------------------------------
 // first_line
 //
 // Return the text up to (but not including) the first newline.

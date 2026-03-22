@@ -90,6 +90,54 @@ TEST(ResolveBranchNames, ExplicitBranchName) {
     EXPECT_EQ(bn->wip_ref, "refs/wip/feature/foo");
 }
 
+TEST(ResolveBranchNames, ExplicitWipShortName) {
+    TestRepo repo;
+    repo.write_file("f", "x");
+    repo.commit("initial");
+
+    auto bn = resolve_branch_names(repo.repo(), std::string{"wip/feature/foo"});
+    ASSERT_TRUE(bn.has_value());
+    EXPECT_EQ(bn->work_branch, "feature/foo");
+    EXPECT_EQ(bn->work_ref, "refs/heads/feature/foo");
+    EXPECT_EQ(bn->wip_ref, "refs/wip/feature/foo");
+}
+
+TEST(ResolveBranchNames, ExplicitHeadsRef) {
+    TestRepo repo;
+    repo.write_file("f", "x");
+    repo.commit("initial");
+
+    auto bn = resolve_branch_names(repo.repo(), std::string{"refs/heads/feature/foo"});
+    ASSERT_TRUE(bn.has_value());
+    EXPECT_EQ(bn->work_branch, "feature/foo");
+    EXPECT_EQ(bn->work_ref, "refs/heads/feature/foo");
+    EXPECT_EQ(bn->wip_ref, "refs/wip/feature/foo");
+}
+
+TEST(ResolveBranchNames, ExplicitWipRef) {
+    TestRepo repo;
+    repo.write_file("f", "x");
+    repo.commit("initial");
+
+    auto bn = resolve_branch_names(repo.repo(), std::string{"refs/wip/feature/foo"});
+    ASSERT_TRUE(bn.has_value());
+    EXPECT_EQ(bn->work_branch, "feature/foo");
+    EXPECT_EQ(bn->work_ref, "refs/heads/feature/foo");
+    EXPECT_EQ(bn->wip_ref, "refs/wip/feature/foo");
+}
+
+TEST(ResolveBranchNames, StripsOnlyOnePrefix) {
+    TestRepo repo;
+    repo.write_file("f", "x");
+    repo.commit("initial");
+
+    auto bn = resolve_branch_names(repo.repo(), std::string{"refs/heads/refs/wip/wip/foo"});
+    ASSERT_TRUE(bn.has_value());
+    EXPECT_EQ(bn->work_branch, "refs/wip/wip/foo");
+    EXPECT_EQ(bn->work_ref, "refs/heads/refs/wip/wip/foo");
+    EXPECT_EQ(bn->wip_ref, "refs/wip/refs/wip/wip/foo");
+}
+
 // ---------------------------------------------------------------------------
 // resolve_oid
 // ---------------------------------------------------------------------------

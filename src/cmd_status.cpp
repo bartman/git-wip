@@ -18,6 +18,7 @@ int StatusCmd::run(int argc, char *argv[]) {
     // -----------------------------------------------------------------------
     bool list_mode  = false;
     bool files_mode = false;
+    std::optional<std::string> ref_arg;
 
     for (int i = 1; i < argc; ++i) {
         std::string a(argv[i]);
@@ -26,14 +27,19 @@ int StatusCmd::run(int argc, char *argv[]) {
         } else if (a == "-f" || a == "--files") {
             files_mode = true;
         } else if (a == "--help" || a == "-h") {
-            std::println("Usage: git-wip status [-l|--list] [-f|--files]\n");
+            std::println("Usage: git-wip status [-l|--list] [-f|--files] [<ref>]\n");
             //                -                     #
             std::println("    -l, --list            # show each wip commit (short sha, subject, age)");
             std::println("    -f, --files           # show diff --stat of wip changes\n");
             return 0;
-        } else {
+        } else if (!a.empty() && a[0] == '-') {
             spdlog::error("git-wip status: unknown option '{}'", a);
             return 1;
+        } else if (ref_arg.has_value()) {
+            spdlog::error("git-wip status: only one ref argument is allowed");
+            return 1;
+        } else {
+            ref_arg = a;
         }
     }
 
@@ -54,7 +60,7 @@ int StatusCmd::run(int argc, char *argv[]) {
     // -----------------------------------------------------------------------
     // 3. Resolve branch names
     // -----------------------------------------------------------------------
-    auto bn = resolve_branch_names(repo);
+    auto bn = resolve_branch_names(repo, ref_arg);
     if (!bn) {
         spdlog::error("not on a local branch");
         return 1;

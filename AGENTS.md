@@ -344,6 +344,11 @@ directly, matching the old shell script's default behaviour.
 - `--list` / `-l` flag — one line per wip commit
 - `--files` / `-f` flag — diff --stat of wip changes
 - Combination of `-l -f` — per-commit diff interleaved with list
+- Optional `<ref>` argument (defaults to current branch), where `<ref>` may be:
+  - `<branch>`
+  - `wip/<branch>`
+  - `refs/heads/<branch>`
+  - `refs/wip/<branch>`
 
 ### 4. Main program must support:
 

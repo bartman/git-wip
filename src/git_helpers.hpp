@@ -66,7 +66,12 @@ inline std::optional<BranchNames> resolve_branch_names(
     BranchNames bn;
 
     if (branch_name.has_value()) {
-        bn.work_branch = strip_prefix(*branch_name, "refs/heads/");
+        bn.work_branch = *branch_name;
+        if (!strip_prefix_inplace(bn.work_branch, "refs/heads/") &&
+            !strip_prefix_inplace(bn.work_branch, "refs/wip/") &&
+            !strip_prefix_inplace(bn.work_branch, "wip/")) {
+            // No prefix matched: treat argument as bare branch name.
+        }
         bn.work_ref = "refs/heads/" + bn.work_branch;
     } else {
         GitReferenceGuard head_ref;

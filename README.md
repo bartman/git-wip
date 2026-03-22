@@ -91,9 +91,9 @@ Create a new WIP commit.
 If `<file>...` arguments are given, only those files are snapshotted.
 Otherwise all tracked files are updated.
 
-### `git wip status [-l] [-f]`
+### `git wip status [-l] [-f] [<ref>]`
 
-Show the status of the WIP branch for the current work branch.
+Show the status of the WIP branch for the current work branch, or another branch.
 
 ```
 $ git wip status
@@ -104,6 +104,15 @@ branch master has 5 wip commits on refs/wip/master
 |---|---|
 | `-l`, `--list` | List each WIP commit: short SHA, subject, and age |
 | `-f`, `--files` | Show a `git diff --stat` of changes relative to the work branch HEAD |
+
+`<ref>` is optional and can be any of:
+
+- `<branch>`
+- `wip/<branch>`
+- `refs/heads/<branch>`
+- `refs/wip/<branch>`
+
+If `<ref>` is omitted, `git wip status` uses the current branch.
 
 `-l` and `-f` can be combined; each commit line is then followed by its
 own per-commit diff stat.

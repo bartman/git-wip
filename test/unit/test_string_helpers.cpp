@@ -34,6 +34,22 @@ TEST(StripPrefix, WipRefUnchanged) {
 }
 
 // ---------------------------------------------------------------------------
+// strip_prefix_inplace
+// ---------------------------------------------------------------------------
+
+TEST(StripPrefixInplace, RemovesPresentPrefixAndReturnsTrue) {
+    std::string s = "refs/heads/master";
+    EXPECT_TRUE(strip_prefix_inplace(s, "refs/heads/"));
+    EXPECT_EQ(s, "master");
+}
+
+TEST(StripPrefixInplace, LeavesStringUnchangedWhenPrefixAbsent) {
+    std::string s = "refs/wip/master";
+    EXPECT_FALSE(strip_prefix_inplace(s, "refs/heads/"));
+    EXPECT_EQ(s, "refs/wip/master");
+}
+
+// ---------------------------------------------------------------------------
 // first_line
 // ---------------------------------------------------------------------------
 
