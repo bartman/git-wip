@@ -8,7 +8,6 @@
 
 #include "print_compat.hpp"
 
-#include <iostream>
 #include <string>
 
 int ListCmd::run(int argc, char *argv[]) {

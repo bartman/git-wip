@@ -5,7 +5,6 @@
 #include "spdlog/spdlog.h"
 
 #include <cstdlib>
-#include <iostream>
 #include "print_compat.hpp"
 #include <string>
 #include <vector>

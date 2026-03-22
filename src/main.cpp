@@ -9,7 +9,6 @@
 #include <iostream>
 #include "print_compat.hpp"
 #include <format>
-#include <sstream> // Required for std::ostringstream
 #include <map>
 #include <memory>
 #include <vector>
