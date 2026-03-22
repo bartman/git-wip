@@ -180,19 +180,43 @@ $ cp build/src/git-wip ~/bin/
 
 ### vim
 
-**(1)** With [Vundle](https://github.com/gmarik/Vundle.vim):
+The vim plugin shells out to `git wip` on every file save, so the `git-wip`
+binary must be installed and on your `PATH` before the plugin will do anything.
+Verify with:
+
+```sh
+$ git wip -h
+```
+
+**(1)** With [lazy.nvim](https://github.com/folke/lazy.nvim):
+
+```lua
+{
+    "bartman/git-wip",
+    branch = "cpp-rewrite",        -- temporary until merged to master
+    subdir = "vim",
+    lazy = false,
+    init = function()
+        -- optional settings:
+        -- vim.g.git_wip_verbose = 1          -- print a message on each save
+        -- vim.g.git_wip_disable_signing = 1  -- skip GPG signing
+    end,
+},
+```
+
+**(2)** With [Vundle](https://github.com/gmarik/Vundle.vim):
 
 ```vim
 Bundle 'bartman/git-wip', {'rtp': 'vim/'}
 ```
 
-**(2)** Copy the plugin directly:
+**(3)** Copy the plugin directly:
 
 ```sh
 $ cp vim/plugin/git-wip.vim ~/.vim/plugin/
 ```
 
-**(3)** Or add an autocommand to your `.vimrc`:
+**(4)** Or add an autocommand to your `.vimrc`:
 
 ```vim
 augroup git-wip
