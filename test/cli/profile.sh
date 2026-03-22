@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # profile.sh -- performance profiling test for git-wip save
 # Run manually: GIT_WIP=/path/to/git-wip TEST_TREE=/tmp/test-tree ./profile.sh
 #

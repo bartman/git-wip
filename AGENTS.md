@@ -36,7 +36,7 @@ Each test cleans its own subdirectory before running and leaves artifacts after 
 ### Adding a new CLI test
 
 1. Create `test/cli/test_<name>.sh` (executable, `chmod +x`)
-2. First two lines: `#!/bin/bash` then `source "$(dirname "$0")/lib.sh"`
+2. First two lines: `#!/usr/bin/env bash` then `source "$(dirname "$0")/lib.sh"`
 3. Write test body using `RUN`, `EXP_*`, `create_test_repo`
 4. End with `echo "OK: $TEST_NAME"`
 5. Add `test_<name>` to the `foreach` list in `test/cli/CMakeLists.txt`

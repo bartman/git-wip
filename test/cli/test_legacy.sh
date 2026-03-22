@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 source "$(dirname "$0")/lib.sh"
 
 # these tests are here to make sure we behave the same way as the legacy git-wip shell implementation
