@@ -23,7 +23,7 @@ int ListCmd::run(int argc, char *argv[]) {
             std::println("  -v, --verbose  show ahead counts and orphaned refs");
             return 0;
         } else {
-            std::println(std::cerr, "git-wip list: unknown option '{}'", a);
+            spdlog::error("git-wip list: unknown option '{}'", a);
             return 1;
         }
     }
@@ -32,7 +32,7 @@ int ListCmd::run(int argc, char *argv[]) {
 
     GitRepoGuard repo_guard;
     if (git_repository_open_ext(repo_guard.ptr(), ".", 0, nullptr) < 0) {
-        std::println(std::cerr, "git-wip: not a git repository: {}", git_error_str());
+        spdlog::error("not a git repository: {}", git_error_str());
         return 1;
     }
     git_repository *repo = repo_guard.get();

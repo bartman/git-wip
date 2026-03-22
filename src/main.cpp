@@ -37,10 +37,10 @@ int main(int argc, char *argv[]) {
     }
 
     std::vector<std::unique_ptr<Command>> commands;
-    commands.push_back(std::make_unique<ListCmd>());
-    commands.push_back(std::make_unique<StatusCmd>());
-    commands.push_back(std::make_unique<LogCmd>());
     commands.push_back(std::make_unique<SaveCmd>());
+    commands.push_back(std::make_unique<StatusCmd>());
+    commands.push_back(std::make_unique<ListCmd>());
+    commands.push_back(std::make_unique<LogCmd>());
     if (g_wip_debug) {
         // delete is not yet implemented
         commands.push_back(std::make_unique<DeleteCmd>());
@@ -81,7 +81,7 @@ int main(int argc, char *argv[]) {
         // so that argv[1] (command name) becomes argv[0] inside the command parser
         return cmd->run(argc - 1, argv + 1);
     } else {
-        spdlog::error("Error: Unknown command '{}'\n", command_name);
+        spdlog::error("Unknown command '{}'", command_name);
         print_main_help(commands, std::cerr);
         return 1;
     }

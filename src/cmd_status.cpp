@@ -31,7 +31,7 @@ int StatusCmd::run(int argc, char *argv[]) {
             std::println("  -f, --files  show diff --stat of wip changes");
             return 0;
         } else {
-            std::println(std::cerr, "git-wip status: unknown option '{}'", a);
+            spdlog::error("git-wip status: unknown option '{}'", a);
             return 1;
         }
     }
@@ -45,7 +45,7 @@ int StatusCmd::run(int argc, char *argv[]) {
 
     GitRepoGuard repo_guard;
     if (git_repository_open_ext(repo_guard.ptr(), ".", 0, nullptr) < 0) {
-        std::println(std::cerr, "git-wip: not a git repository: {}", git_error_str());
+        spdlog::error("not a git repository: {}", git_error_str());
         return 1;
     }
     git_repository *repo = repo_guard.get();
@@ -55,7 +55,7 @@ int StatusCmd::run(int argc, char *argv[]) {
     // -----------------------------------------------------------------------
     auto bn = resolve_branch_names(repo);
     if (!bn) {
-        std::println(std::cerr, "git-wip: not on a local branch");
+        spdlog::error("not on a local branch");
         return 1;
     }
 
@@ -66,7 +66,7 @@ int StatusCmd::run(int argc, char *argv[]) {
     // -----------------------------------------------------------------------
     auto work_last = resolve_oid(repo, bn->work_ref);
     if (!work_last) {
-        std::println(std::cerr, "git-wip: branch '{}' has no commits", bn->work_branch);
+        spdlog::error("branch '{}' has no commits", bn->work_branch);
         return 1;
     }
 
@@ -84,7 +84,7 @@ int StatusCmd::run(int argc, char *argv[]) {
     // -----------------------------------------------------------------------
     auto wip_commits = collect_wip_commits(repo, *wip_last, *work_last);
     if (!wip_commits) {
-        std::println(std::cerr, "git-wip: cannot enumerate wip commits: {}", git_error_str());
+        spdlog::error("cannot enumerate wip commits: {}", git_error_str());
         return 1;
     }
 

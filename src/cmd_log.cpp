@@ -39,7 +39,7 @@ int LogCmd::run(int argc, char *argv[]) {
             std::println("Usage: git-wip log [--pretty|-p] [--stat|-s] [--reflog|-r] [-- <file>...]");
             return 0;
         } else if (!a.empty() && a[0] == '-') {
-            std::println(std::cerr, "git-wip log: unknown option '{}'", a);
+            spdlog::error("git-wip log: unknown option '{}'", a);
             return 1;
         } else {
             files.push_back(a);
@@ -55,7 +55,7 @@ int LogCmd::run(int argc, char *argv[]) {
 
     GitRepoGuard repo_guard;
     if (git_repository_open_ext(repo_guard.ptr(), ".", 0, nullptr) < 0) {
-        std::println(std::cerr, "git-wip: not a git repository: {}", git_error_str());
+        spdlog::error("not a git repository: {}", git_error_str());
         return 1;
     }
     git_repository *repo = repo_guard.get();
@@ -65,7 +65,7 @@ int LogCmd::run(int argc, char *argv[]) {
     // -----------------------------------------------------------------------
     auto bn = resolve_branch_names(repo);
     if (!bn) {
-        std::println(std::cerr, "git-wip: not on a local branch");
+        spdlog::error("not on a local branch");
         return 1;
     }
 
@@ -76,13 +76,13 @@ int LogCmd::run(int argc, char *argv[]) {
     // -----------------------------------------------------------------------
     auto work_last = resolve_oid(repo, bn->work_ref);
     if (!work_last) {
-        std::println(std::cerr, "git-wip: '{}' branch has no commits.", bn->work_branch);
+        spdlog::error("'{}' branch has no commits.", bn->work_branch);
         return 1;
     }
 
     auto wip_last = resolve_oid(repo, bn->wip_ref);
     if (!wip_last) {
-        std::println(std::cerr, "git-wip: '{}' has no WIP commits.", bn->work_branch);
+        spdlog::error("'{}' has no WIP commits.", bn->work_branch);
         return 1;
     }
 
@@ -108,7 +108,7 @@ int LogCmd::run(int argc, char *argv[]) {
     // Compute merge-base to determine the stop point.
     git_oid base_oid{};
     if (git_merge_base(&base_oid, repo, &*wip_last, &*work_last) < 0) {
-        std::println(std::cerr, "git-wip: cannot find merge base: {}", git_error_str());
+        spdlog::error("cannot find merge base: {}", git_error_str());
         return 1;
     }
 

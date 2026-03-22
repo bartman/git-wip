@@ -48,7 +48,7 @@ int SaveCmd::run(int argc, char *argv[]) {
             std::println("Usage: git-wip save [<message>] [--editor|-e] [--untracked|-u] [--ignored|-i] [--no-gpg-sign] [-- <file>...]");
             return 0;
         } else if (!a.empty() && a[0] == '-') {
-            std::println(std::cerr, "git-wip save: unknown option '{}'", a);
+            spdlog::error("git-wip save: unknown option '{}'", a);
             return 1;
         } else if (!got_message) {
             message     = a;
@@ -68,7 +68,7 @@ int SaveCmd::run(int argc, char *argv[]) {
 
     GitRepoGuard repo_guard;
     if (git_repository_open_ext(repo_guard.ptr(), ".", 0, nullptr) < 0) {
-        std::println(std::cerr, "git-wip: not a git repository: {}", git_error_str());
+        spdlog::error("not a git repository: {}", git_error_str());
         return 1;
     }
     git_repository *repo = repo_guard.get();
@@ -100,7 +100,7 @@ int SaveCmd::run(int argc, char *argv[]) {
     }
 
     if (git_repository_is_bare(repo)) {
-        std::println(std::cerr, "git-wip: cannot use in a bare repository");
+        spdlog::error("cannot use in a bare repository");
         return 1;
     }
 
@@ -110,7 +110,7 @@ int SaveCmd::run(int argc, char *argv[]) {
     auto bn = resolve_branch_names(repo);
     if (!bn) {
         if (editor_mode) { return 0; }
-        std::println(std::cerr, "git-wip: git-wip requires a local branch");
+        spdlog::error("git-wip requires a local branch");
         return 1;
     }
 
@@ -127,7 +127,7 @@ int SaveCmd::run(int argc, char *argv[]) {
     auto work_last = resolve_oid(repo, bn->work_ref);
     if (!work_last) {
         if (editor_mode) { return 0; }
-        std::println(std::cerr, "git-wip: '{}' branch has no commits.", bn->work_branch);
+        spdlog::error("'{}' branch has no commits.", bn->work_branch);
         return 1;
     }
 
@@ -143,8 +143,8 @@ int SaveCmd::run(int argc, char *argv[]) {
 
     auto wip_parent = wip_parent_oid(repo, *work_last, wip_last);
     if (!wip_parent) {
-        std::println(std::cerr, "git-wip: '{}' and '{}' are unrelated.",
-                     bn->work_branch, bn->wip_ref);
+        spdlog::error("'{}' and '{}' are unrelated.",
+                      bn->work_branch, bn->wip_ref);
         return 1;
     }
 
@@ -163,25 +163,25 @@ int SaveCmd::run(int argc, char *argv[]) {
     {
         GitCommitGuard parent_commit;
         if (git_commit_lookup(parent_commit.ptr(), repo, &*wip_parent) < 0) {
-            std::println(std::cerr, "git-wip: cannot look up parent commit: {}", git_error_str());
+            spdlog::error("cannot look up parent commit: {}", git_error_str());
             return 1;
         }
 
         GitTreeGuard parent_tree;
         if (git_commit_tree(parent_tree.ptr(), parent_commit.get()) < 0) {
-            std::println(std::cerr, "git-wip: cannot get parent tree: {}", git_error_str());
+            spdlog::error("cannot get parent tree: {}", git_error_str());
             return 1;
         }
 
         GitIndexGuard idx_guard;
         if (git_repository_index(idx_guard.ptr(), repo) < 0) {
-            std::println(std::cerr, "git-wip: cannot get repo index: {}", git_error_str());
+            spdlog::error("cannot get repo index: {}", git_error_str());
             return 1;
         }
         git_index *idx = idx_guard.get();
 
         if (git_index_read_tree(idx, parent_tree.get()) < 0) {
-            std::println(std::cerr, "git-wip: cannot read parent tree into index: {}", git_error_str());
+            spdlog::error("cannot read parent tree into index: {}", git_error_str());
             return 1;
         }
 
@@ -205,13 +205,13 @@ int SaveCmd::run(int argc, char *argv[]) {
         }
 
         if (stage_rc < 0) {
-            std::println(std::cerr, "git-wip: cannot stage changes: {}", git_error_str());
+            spdlog::error("cannot stage changes: {}", git_error_str());
             git_index_read(idx, 1);
             return 1;
         }
 
         if (git_index_write_tree(&new_tree_oid, idx) < 0) {
-            std::println(std::cerr, "git-wip: cannot write tree: {}", git_error_str());
+            spdlog::error("cannot write tree: {}", git_error_str());
             git_index_read(idx, 1);
             return 1;
         }
@@ -244,13 +244,13 @@ int SaveCmd::run(int argc, char *argv[]) {
     // -----------------------------------------------------------------------
     GitTreeGuard new_tree_obj;
     if (git_tree_lookup(new_tree_obj.ptr(), repo, &new_tree_oid) < 0) {
-        std::println(std::cerr, "git-wip: cannot look up new tree: {}", git_error_str());
+        spdlog::error("cannot look up new tree: {}", git_error_str());
         return 1;
     }
 
     GitCommitGuard parent_commit_obj;
     if (git_commit_lookup(parent_commit_obj.ptr(), repo, &*wip_parent) < 0) {
-        std::println(std::cerr, "git-wip: cannot look up parent commit: {}", git_error_str());
+        spdlog::error("cannot look up parent commit: {}", git_error_str());
         return 1;
     }
 
@@ -265,7 +265,7 @@ int SaveCmd::run(int argc, char *argv[]) {
                               sig.get(), sig.get(), nullptr,
                               message.c_str(), new_tree_obj.get(),
                               1, parents) < 0) {
-            std::println(std::cerr, "git-wip: cannot create commit: {}", git_error_str());
+            spdlog::error("cannot create commit: {}", git_error_str());
             return 1;
         }
     }
@@ -285,8 +285,8 @@ int SaveCmd::run(int argc, char *argv[]) {
                                           &new_commit_oid, /*force=*/1,
                                           current_id,
                                           reflog_msg.c_str()) < 0) {
-            std::println(std::cerr, "git-wip: cannot update ref '{}': {}",
-                         bn->wip_ref, git_error_str());
+            spdlog::error("cannot update ref '{}': {}",
+                          bn->wip_ref, git_error_str());
             return 1;
         }
     }
