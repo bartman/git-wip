@@ -7,6 +7,7 @@
 #include "spdlog/spdlog.h"
 
 #include <cstdlib>
+#include <filesystem>
 #include <format>
 #include <iostream>
 #include "print_compat.hpp"
@@ -72,6 +73,32 @@ int SaveCmd::run(int argc, char *argv[]) {
         return 1;
     }
     git_repository *repo = repo_guard.get();
+
+    // -----------------------------------------------------------------------
+    // 2b. Normalise file paths to be relative to the workdir root.
+    //
+    //     git_index_add_all() resolves pathspecs against the workdir root,
+    //     but the paths supplied on the command line are relative to the
+    //     current working directory (which may be a subdirectory).  Convert
+    //     each path: cwd/file → absolute → workdir-relative.
+    // -----------------------------------------------------------------------
+    if (!files.empty()) {
+        const char *workdir_cstr = git_repository_workdir(repo);
+        if (workdir_cstr) {
+            std::filesystem::path workdir = std::filesystem::canonical(workdir_cstr);
+            std::filesystem::path cwd     = std::filesystem::current_path();
+            for (auto &f : files) {
+                std::filesystem::path abs = std::filesystem::weakly_canonical(cwd / f);
+                // Make relative to workdir; weakly_canonical handles non-existent files too
+                std::error_code ec;
+                auto rel = std::filesystem::relative(abs, workdir, ec);
+                if (!ec && !rel.empty())
+                    f = rel.string();
+                spdlog::debug("save: file '{}' → repo-relative '{}'",
+                              (cwd / f).string(), f);
+            }
+        }
+    }
 
     if (git_repository_is_bare(repo)) {
         std::println(std::cerr, "git-wip: cannot use in a bare repository");
