@@ -65,7 +65,7 @@ inline std::optional<BranchNames> resolve_branch_names(
     const std::optional<std::string> &branch_name = std::nullopt) {
     BranchNames bn;
 
-    if (branch_name.has_value()) {
+    if (branch_name.has_value() && branch_name != "HEAD") {
         bn.work_branch = *branch_name;
         if (!strip_prefix_inplace(bn.work_branch, "refs/heads/") &&
             !strip_prefix_inplace(bn.work_branch, "refs/wip/") &&
