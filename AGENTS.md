@@ -3,7 +3,7 @@
 ## Guidance from user
 
 - Use c++23 best practices.  Use CamelCase for classes, use snake_case for method names, variable names, etc.  Use #pragma once in headers.  Use m_ prefix for member variables.
-- use clipp for arg parsing, use spdlog for debug logging (set `WIP_DEBUG=1` to see debug), use libgit2 for git functionality
+- use manual arg parsing, use spdlog for debug logging (set `WIP_DEBUG=1` to see debug), use libgit2 for git functionality
 - build with `make`, test with `make test`
 - manage/install dependencies with `dependencies.sh` script
 - unit tests go into `test/unit/test_*.cpp`
@@ -253,9 +253,9 @@ All libgit2 handle types have lightweight RAII guards in `src/git_guards.hpp`:
 `SignatureGuard`, `RevwalkGuard`.  Each exposes `get()` and `ptr()`.
 Also provides `inline git_error_str()` for the last libgit2 error message.
 
-Arg parsing is done **manually** in all commands (not via clipp) because the
+Arg parsing is done **manually** in all commands because the
 `save` command has a "first positional = message, rest = files" pattern that
-clipp does not handle cleanly.  The same manual style was adopted for
+is awkward in declarative parsers.  The same manual style was adopted for
 consistency across `log` and `status`.
 
 ### save command (cmd_save.cpp)

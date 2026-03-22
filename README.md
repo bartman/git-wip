@@ -175,7 +175,7 @@ $ make test         # Build + run all tests (unit + CLI integration)
 $ make install      # Install to ~/.local  (override with PREFIX=...)
 ```
 
-Dependencies (`spdlog`, `clipp`) are fetched automatically by CMake via
+Dependencies (`spdlog`) are fetched automatically by CMake via
 `FetchContent`.  `libgit2` must be installed system-wide (e.g.
 `apt install libgit2-dev`).
 

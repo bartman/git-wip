@@ -16,13 +16,8 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/gabime/spdlog.git
     GIT_TAG v1.15.3
 )
-FetchContent_Declare(
-    clipp
-    GIT_REPOSITORY https://github.com/muellan/clipp.git
-    GIT_TAG v1.2.3
-)
 
-FetchContent_MakeAvailable(spdlog clipp)
+FetchContent_MakeAvailable(spdlog)
 
 # Detect whether the compiler's standard library ships <print> (C++23 P2093).
 # GCC < 14 and some older clangs lack it even with -std=c++23.

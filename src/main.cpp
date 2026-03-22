@@ -12,7 +12,6 @@
 #include <map>
 #include <memory>
 #include <vector>
-#include "clipp.h"
 #include "spdlog/spdlog.h"
 
 bool g_wip_debug = false;

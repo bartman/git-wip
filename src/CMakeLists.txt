@@ -12,7 +12,6 @@ install(TARGETS git-wip
 )
 
 target_include_directories(git-wip PRIVATE
-    ${clipp_SOURCE_DIR}/include
     ${LIBGIT2_INCLUDE_DIRS}
 )
 
