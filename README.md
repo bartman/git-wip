@@ -321,3 +321,7 @@ $ git diff --cached
 ```
 
 Adjust with `git reset` / `git add -p` as needed, then commit.
+
+# related
+
+- [wip.rs](https://github.com/dlight/wip.rs) is a Rust executable that watches for changes in your work, and invokes `git-wip` as needed. (by [dlight](https://github.com/dlight)).
