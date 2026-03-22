@@ -170,6 +170,28 @@ wip/feature has 1 commit ahead of feature
 wip/old-branch is orphaned
 ```
 
+### `git wip delete [--yes] [<ref>]`
+
+Delete WIP refs.
+
+- With `<ref>`, deletes that branch's WIP ref (same ref formats as `status`):
+  - `<branch>`
+  - `wip/<branch>`
+  - `refs/heads/<branch>`
+  - `refs/wip/<branch>`
+- With no `<ref>`, deletes the current branch's WIP ref and asks for confirmation.
+- `--yes` skips the confirmation prompt (only relevant when `<ref>` is omitted).
+
+```
+$ git wip delete
+About to delete wip/master [Y/n]
+```
+
+### `git wip delete --cleanup`
+
+Delete orphaned WIP refs (any `refs/wip/<branch>` where `refs/heads/<branch>`
+does not exist).
+
 ---
 
 ## Building

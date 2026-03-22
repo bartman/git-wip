@@ -243,7 +243,7 @@ The vim plugin runs `git wip -h` to check if git-wip is installed. This should:
 | save | cmd_save.hpp | cmd_save.cpp | **Implemented** — full libgit2, passes all tests |
 | log | cmd_log.hpp | cmd_log.cpp | **Implemented** — libgit2 range, spawns `git log` |
 | status | cmd_status.hpp | cmd_status.cpp | **Implemented** — libgit2 revwalk, `-l`/`-f` flags |
-| delete | cmd_delete.hpp | cmd_delete.cpp | Skeleton — parses args but does nothing |
+| delete | cmd_delete.hpp | cmd_delete.cpp | **Implemented** — delete one/current/cleanup orphaned wip refs |
 | config | — | — | Not implemented |
 
 ### git_guards.hpp — RAII wrappers

@@ -39,10 +39,7 @@ int main(int argc, char *argv[]) {
     commands.push_back(std::make_unique<StatusCmd>());
     commands.push_back(std::make_unique<ListCmd>());
     commands.push_back(std::make_unique<LogCmd>());
-    if (g_wip_debug) {
-        // delete is not yet implemented
-        commands.push_back(std::make_unique<DeleteCmd>());
-    }
+    commands.push_back(std::make_unique<DeleteCmd>());
 
     std::map<std::string, Command*> command_map;
     for (const auto& cmd : commands) {

@@ -10,7 +10,7 @@ public:
     }
 
     std::string desc() const override {
-        return "cleanup";
+        return "delete wip refs";
     }
 
     int run(int argc, char *argv[]) override;
