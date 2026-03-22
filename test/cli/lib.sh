@@ -41,6 +41,9 @@ note "Running $TEST_NAME (artifacts in $TEST_TREE/$TEST_NAME)"
 # ------------------------------------------------------------------------
 # Test helpers
 
+# Current working directory for _RUN/_RUN_IN; starts at $REPO.
+_RUN_CWD=""
+
 _RUN() {
     note "$@"
     [ "$(pwd)" = "$REPO" ] || die "expected cwd=$REPO, got $(pwd)"
@@ -54,6 +57,43 @@ _RUN() {
 
 RUN() {
     _RUN "$@"
+    local rc
+    rc="$(cat "$RC")"
+    [ "$rc" = 0 ] || handle_error
+}
+
+# CD <subdir> — change the working directory for subsequent RUN_IN calls.
+# Use CD "" or CD_ROOT to return to $REPO.
+CD() {
+    local target
+    if [ -z "$1" ]; then
+        target="$REPO"
+    else
+        target="$REPO/$1"
+    fi
+    cd "$target" || die "CD: cannot cd to $target"
+    _RUN_CWD="$target"
+    note "CD → $(pwd)"
+}
+
+CD_ROOT() { CD ""; }
+
+# _RUN_IN — like _RUN but allows cwd to be a subdirectory of $REPO.
+_RUN_IN() {
+    note "$@"
+    local expected="${_RUN_CWD:-$REPO}"
+    [ "$(pwd)" = "$expected" ] || die "expected cwd=$expected, got $(pwd)"
+
+    set +e
+    printf '%s' "$*" >"$CMD"
+    eval "$@" >"$OUT" 2>&1
+    printf '%s' "$?" >"$RC"
+    set -e
+}
+
+# RUN_IN — like RUN but for subdirectory context (set via CD).
+RUN_IN() {
+    _RUN_IN "$@"
     local rc
     rc="$(cat "$RC")"
     [ "$rc" = 0 ] || handle_error
