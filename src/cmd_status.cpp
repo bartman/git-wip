@@ -1,4 +1,5 @@
 #include "cmd_status.hpp"
+#include "color.hpp"
 #include "git_guards.hpp"
 #include "git_helpers.hpp"
 #include "string_helpers.hpp"
@@ -79,7 +80,7 @@ int StatusCmd::run(int argc, char *argv[]) {
 
     auto wip_last = resolve_oid(repo, bn->wip_ref);
     if (!wip_last) {
-        std::println("branch {} has no wip commits", bn->work_branch);
+        std::println("branch {} has no wip commits", color_branch(bn->work_branch));
         return 0;
     }
 
@@ -101,10 +102,10 @@ int StatusCmd::run(int argc, char *argv[]) {
     // 6. Summary line
     // -----------------------------------------------------------------------
     std::println("branch {} has {} wip commit{} on {}",
-                 bn->work_branch,
+                 color_branch(bn->work_branch),
                  wip_commits->size(),
                  wip_commits->size() == 1 ? "" : "s",
-                 bn->wip_ref);
+                 color_wip_branch(bn->wip_ref));
     std::cout.flush();
 
     // -----------------------------------------------------------------------
@@ -117,7 +118,7 @@ int StatusCmd::run(int argc, char *argv[]) {
 
             const git_signature *author = git_commit_author(commit.get());
             std::println("{} - {} ({})",
-                         oid_to_short_hex(&oid),
+                         color_commit_hash(oid_to_short_hex(&oid)),
                          first_line(git_commit_message(commit.get())),
                          relative_time(author->when.time));
             std::cout.flush();

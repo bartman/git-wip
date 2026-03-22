@@ -1,4 +1,5 @@
 add_executable(git-wip
+    color.cpp
     main.cpp
     cmd_delete.cpp
     cmd_list.cpp

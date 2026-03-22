@@ -1,4 +1,5 @@
 #include "command.hpp"
+#include "color.hpp"
 #include "cmd_delete.hpp"
 #include "cmd_list.hpp"
 #include "cmd_log.hpp"
@@ -26,6 +27,8 @@ void print_main_help(const std::vector<std::unique_ptr<Command>>& commands, std:
 }
 
 int main(int argc, char *argv[]) {
+    color_init();
+
     // Check WIP_DEBUG environment variable for debug logging
     const char* wip_debug = std::getenv("WIP_DEBUG");
     if (wip_debug != nullptr && wip_debug[0] != '\0' && wip_debug[0] != '0') {

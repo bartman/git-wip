@@ -1,4 +1,5 @@
 #include "cmd_delete.hpp"
+#include "color.hpp"
 #include "git_guards.hpp"
 #include "git_helpers.hpp"
 #include "string_helpers.hpp"
@@ -23,7 +24,7 @@ int delete_ref(git_repository *repo, const std::string &wip_ref) {
         return 1;
     }
 
-    std::println("deleted {}", strip_prefix(wip_ref, "refs/"));
+    std::println("deleted {}", color_wip_branch(strip_prefix(wip_ref, "refs/")));
     return 0;
 }
 
@@ -87,7 +88,7 @@ int DeleteCmd::run(int argc, char *argv[]) {
                 return 1;
             }
             ++removed;
-            std::println("deleted {}", strip_prefix(wip_ref, "refs/"));
+            std::println("deleted {}", color_wip_branch(strip_prefix(wip_ref, "refs/")));
         }
 
         std::println("deleted {} orphaned wip ref{}",
@@ -108,7 +109,7 @@ int DeleteCmd::run(int argc, char *argv[]) {
     }
 
     if (!ref_arg.has_value() && !yes_mode) {
-        std::print("About to delete {} [Y/n] ", strip_prefix(bn->wip_ref, "refs/"));
+        std::print("About to delete {} [Y/n] ", color_wip_branch(strip_prefix(bn->wip_ref, "refs/")));
         std::cout.flush();
 
         std::string input;
