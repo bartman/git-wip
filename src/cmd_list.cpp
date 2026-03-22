@@ -18,8 +18,9 @@ int ListCmd::run(int argc, char *argv[]) {
         if (a == "-v" || a == "--verbose") {
             verbose = true;
         } else if (a == "--help" || a == "-h") {
-            std::println("Usage: git-wip list [-v|--verbose]");
-            std::println("  -v, --verbose  show ahead counts and orphaned refs");
+            std::println("Usage: git-wip list [-v|--verbose]\n");
+            //                -                     #
+            std::println("    -v, --verbose         # show ahead counts and orphaned refs\n");
             return 0;
         } else {
             spdlog::error("git-wip list: unknown option '{}'", a);

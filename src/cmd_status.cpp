@@ -26,9 +26,10 @@ int StatusCmd::run(int argc, char *argv[]) {
         } else if (a == "-f" || a == "--files") {
             files_mode = true;
         } else if (a == "--help" || a == "-h") {
-            std::println("Usage: git-wip status [-l|--list] [-f|--files]");
-            std::println("  -l, --list   show each wip commit (short sha, subject, age)");
-            std::println("  -f, --files  show diff --stat of wip changes");
+            std::println("Usage: git-wip status [-l|--list] [-f|--files]\n");
+            //                -                     #
+            std::println("    -l, --list            # show each wip commit (short sha, subject, age)");
+            std::println("    -f, --files           # show diff --stat of wip changes\n");
             return 0;
         } else {
             spdlog::error("git-wip status: unknown option '{}'", a);

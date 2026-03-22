@@ -35,7 +35,12 @@ int LogCmd::run(int argc, char *argv[]) {
         } else if (a == "--reflog" || a == "-r") {
             reflog_mode = true;
         } else if (a == "--help" || a == "-h") {
-            std::println("Usage: git-wip log [--pretty|-p] [--stat|-s] [--reflog|-r] [-- <file>...]");
+            std::println("Usage: git-wip log [--pretty|-p] [--stat|-s] [--reflog|-r] [-- <file>...]\n");
+            //                -                     #
+            std::println("    -p, --pretty          # use pretty oneline log (default full log)");
+            std::println("    -s, --stat            # show file changes in log");
+            std::println("    -r, --reflog          # invoke reflog (shows historical entries)");
+            std::println("    <file>...             # filter on changes to specific file(s)\n");
             return 0;
         } else if (!a.empty() && a[0] == '-') {
             spdlog::error("git-wip log: unknown option '{}'", a);

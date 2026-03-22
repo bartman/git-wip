@@ -44,7 +44,14 @@ int SaveCmd::run(int argc, char *argv[]) {
         } else if (a == "--no-gpg-sign") {
             no_gpg_sign = true;
         } else if (a == "--help" || a == "-h") {
-            std::println("Usage: git-wip save [<message>] [--editor|-e] [--untracked|-u] [--ignored|-i] [--no-gpg-sign] [-- <file>...]");
+            std::println("Usage: git-wip save [<message>] [--editor|-e] [--untracked|-u] [--ignored|-i] [--no-gpg-sign] [-- <file>...]\n");
+            //                -                     #
+            std::println("    <message>             # use this message (defaults to \"WIP\")");
+            std::println("    -e, --editor          # queit when there are no changes (called from editor)");
+            std::println("    -u, --untracked       # capture changes to untracked files");
+            std::println("    -i, --ignored         # capture changes to ignored files");
+            std::println("    --no-gpg-sign         # disable signing of commits");
+            std::println("    <file>...             # filter on changes to specific file(s)\n");
             return 0;
         } else if (!a.empty() && a[0] == '-') {
             spdlog::error("git-wip save: unknown option '{}'", a);
