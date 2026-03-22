@@ -24,7 +24,7 @@ Q=$(if ${V},,@)
 # user can override these
 CMAKE ?= cmake
 GENERATOR ?= Ninja
-PREFIX ?= ~/.local
+PREFIX ?= $(HOME)/.local
 REBUILD ?= false
 BUILD ?= build
 TYPE ?= $(if ${CURRENT_TYPE},${CURRENT_TYPE},${DEFAULT_TYPE})

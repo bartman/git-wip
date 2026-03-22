@@ -7,6 +7,10 @@ add_executable(git-wip
     cmd_status.cpp
 )
 
+install(TARGETS git-wip
+    RUNTIME DESTINATION bin
+)
+
 target_include_directories(git-wip PRIVATE
     ${clipp_SOURCE_DIR}/include
     ${LIBGIT2_INCLUDE_DIRS}
