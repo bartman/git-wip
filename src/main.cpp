@@ -1,5 +1,6 @@
 #include "command.hpp"
 #include "cmd_delete.hpp"
+#include "cmd_list.hpp"
 #include "cmd_log.hpp"
 #include "cmd_save.hpp"
 #include "cmd_status.hpp"
@@ -36,6 +37,7 @@ int main(int argc, char *argv[]) {
     }
 
     std::vector<std::unique_ptr<Command>> commands;
+    commands.push_back(std::make_unique<ListCmd>());
     commands.push_back(std::make_unique<StatusCmd>());
     commands.push_back(std::make_unique<LogCmd>());
     commands.push_back(std::make_unique<SaveCmd>());

@@ -10,8 +10,10 @@
 
 #include <filesystem>
 #include <fstream>
+#include <algorithm>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 // ---------------------------------------------------------------------------
@@ -50,21 +52,66 @@ struct BranchNames {
 // ---------------------------------------------------------------------------
 // resolve_branch_names
 //
-// Read HEAD from `repo` and derive BranchNames.
-// Returns std::nullopt if HEAD is unborn or detached (not on a local branch).
+// Derive BranchNames from `repo`.
+//
+// If `branch_name` is provided, build names for that branch directly.
+// Otherwise read HEAD from `repo` and derive the current branch names.
+//
+// Returns std::nullopt if HEAD is unborn or detached (not on a local branch)
+// when no explicit branch name is given.
 // ---------------------------------------------------------------------------
-inline std::optional<BranchNames> resolve_branch_names(git_repository *repo) {
-    ReferenceGuard head_ref;
-    if (git_repository_head(head_ref.ptr(), repo) < 0)
-        return std::nullopt;
-    if (!git_reference_is_branch(head_ref.get()))
-        return std::nullopt;
-
+inline std::optional<BranchNames> resolve_branch_names(
+    git_repository *repo,
+    const std::optional<std::string> &branch_name = std::nullopt) {
     BranchNames bn;
-    bn.work_ref    = git_reference_name(head_ref.get()); // e.g. "refs/heads/master"
-    bn.work_branch = strip_prefix(bn.work_ref, "refs/heads/");
+
+    if (branch_name.has_value()) {
+        bn.work_branch = strip_prefix(*branch_name, "refs/heads/");
+        bn.work_ref = "refs/heads/" + bn.work_branch;
+    } else {
+        ReferenceGuard head_ref;
+        if (git_repository_head(head_ref.ptr(), repo) < 0)
+            return std::nullopt;
+        if (!git_reference_is_branch(head_ref.get()))
+            return std::nullopt;
+
+        bn.work_ref = git_reference_name(head_ref.get()); // e.g. "refs/heads/master"
+        bn.work_branch = strip_prefix(bn.work_ref, "refs/heads/");
+    }
+
     bn.wip_ref     = "refs/wip/" + bn.work_branch;
     return bn;
+}
+
+// ---------------------------------------------------------------------------
+// find_refs
+//
+// Enumerate references whose names begin with `prefix`.
+// Example: prefix="refs/wip/" behaves like `git for-each-ref refs/wip/`.
+//
+// Returns an empty vector when no refs match OR if iteration fails.
+// ---------------------------------------------------------------------------
+inline std::vector<std::string> find_refs(
+    git_repository *repo,
+    const std::string_view prefix) {
+    std::vector<std::string> refs;
+
+    git_reference_iterator *iter = nullptr;
+    if (git_reference_iterator_new(&iter, repo) < 0)
+        return refs;
+
+    git_reference *ref = nullptr;
+    while (git_reference_next(&ref, iter) == 0) {
+        const char *name = git_reference_name(ref);
+        if (name != nullptr && std::string_view(name).starts_with(prefix))
+            refs.emplace_back(name);
+        git_reference_free(ref);
+        ref = nullptr;
+    }
+
+    git_reference_iterator_free(iter);
+    std::ranges::sort(refs);
+    return refs;
 }
 
 // ---------------------------------------------------------------------------

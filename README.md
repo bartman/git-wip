@@ -138,6 +138,29 @@ Show the git log for the current WIP branch.
 | `-s`, `--stat` | Include per-commit diff stat |
 | `-r`, `--reflog` | Show the reflog instead of the commit graph (useful for recovering old WIP stacks) |
 
+### `git wip list [-v]`
+
+List all WIP refs in the repository.
+
+```
+$ git wip list
+wip/master
+wip/feature
+```
+
+| Option | Description |
+|---|---|
+| `-v`, `--verbose` | Show how many WIP commits are ahead of the matching work branch; report orphaned WIP refs |
+
+Verbose output example:
+
+```
+$ git wip list -v
+wip/master has 5 commits ahead of master
+wip/feature has 1 commit ahead of feature
+wip/old-branch is orphaned
+```
+
 ---
 
 ## Building

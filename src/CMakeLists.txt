@@ -1,6 +1,7 @@
 add_executable(git-wip
     main.cpp
     cmd_delete.cpp
+    cmd_list.cpp
     cmd_log.cpp
     cmd_save.cpp
     cmd_status.cpp

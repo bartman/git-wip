@@ -4,6 +4,7 @@
 #include <gtest/gtest.h>
 
 #include <filesystem>
+#include <set>
 #include <string>
 
 // ---------------------------------------------------------------------------
@@ -75,6 +76,18 @@ TEST(ResolveBranchNames, DetachedHead) {
 
     auto bn = resolve_branch_names(repo.repo());
     EXPECT_FALSE(bn.has_value());
+}
+
+TEST(ResolveBranchNames, ExplicitBranchName) {
+    TestRepo repo;
+    repo.write_file("f", "x");
+    repo.commit("initial");
+
+    auto bn = resolve_branch_names(repo.repo(), std::string{"feature/foo"});
+    ASSERT_TRUE(bn.has_value());
+    EXPECT_EQ(bn->work_branch, "feature/foo");
+    EXPECT_EQ(bn->work_ref, "refs/heads/feature/foo");
+    EXPECT_EQ(bn->wip_ref, "refs/wip/feature/foo");
 }
 
 // ---------------------------------------------------------------------------
@@ -157,4 +170,41 @@ TEST(EnsureReflogDir, NestedBranchName) {
     std::filesystem::path reflog_file =
         std::filesystem::path(git_dir) / "logs" / "refs" / "wip" / "team" / "feature";
     EXPECT_TRUE(std::filesystem::exists(reflog_file));
+}
+
+// ---------------------------------------------------------------------------
+// find_refs
+// ---------------------------------------------------------------------------
+
+TEST(FindRefs, FindsWipRefsByPrefix) {
+    TestRepo repo;
+    repo.write_file("f", "x");
+    git_oid oid = repo.commit("initial");
+
+    repo.create_ref("refs/wip/master", oid);
+    repo.create_ref("refs/wip/foo", oid);
+    repo.create_ref("refs/wip/team/feature", oid);
+
+    auto refs = find_refs(repo.repo(), "refs/wip/");
+
+    EXPECT_EQ(refs.size(), 3u);
+    EXPECT_EQ(refs[0], "refs/wip/foo");
+    EXPECT_EQ(refs[1], "refs/wip/master");
+    EXPECT_EQ(refs[2], "refs/wip/team/feature");
+}
+
+TEST(FindRefs, FindsHeadsRefsByPrefix) {
+    TestRepo repo;
+    repo.write_file("f", "x");
+    git_oid oid = repo.commit("initial");
+
+    repo.create_ref("refs/heads/foo", oid);
+    repo.create_ref("refs/heads/bar", oid);
+
+    auto refs = find_refs(repo.repo(), "refs/heads");
+    std::set<std::string> got(refs.begin(), refs.end());
+
+    EXPECT_TRUE(got.contains("refs/heads/master"));
+    EXPECT_TRUE(got.contains("refs/heads/foo"));
+    EXPECT_TRUE(got.contains("refs/heads/bar"));
 }
