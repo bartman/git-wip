@@ -28,12 +28,11 @@ int ListCmd::run(int argc, char *argv[]) {
         }
     }
 
-    git_libgit2_init();
+    GitLibGuard git_lib_guard;
 
-    RepoGuard repo_guard;
+    GitRepoGuard repo_guard;
     if (git_repository_open_ext(repo_guard.ptr(), ".", 0, nullptr) < 0) {
         std::println(std::cerr, "git-wip: not a git repository: {}", git_error_str());
-        git_libgit2_shutdown();
         return 1;
     }
     git_repository *repo = repo_guard.get();
@@ -79,6 +78,5 @@ int ListCmd::run(int argc, char *argv[]) {
                      bn->work_branch);
     }
 
-    git_libgit2_shutdown();
     return 0;
 }

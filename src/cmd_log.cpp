@@ -51,12 +51,11 @@ int LogCmd::run(int argc, char *argv[]) {
     // -----------------------------------------------------------------------
     // 2. Open repository
     // -----------------------------------------------------------------------
-    git_libgit2_init();
+    GitLibGuard git_lib_guard;
 
-    RepoGuard repo_guard;
+    GitRepoGuard repo_guard;
     if (git_repository_open_ext(repo_guard.ptr(), ".", 0, nullptr) < 0) {
         std::println(std::cerr, "git-wip: not a git repository: {}", git_error_str());
-        git_libgit2_shutdown();
         return 1;
     }
     git_repository *repo = repo_guard.get();
@@ -67,7 +66,6 @@ int LogCmd::run(int argc, char *argv[]) {
     auto bn = resolve_branch_names(repo);
     if (!bn) {
         std::println(std::cerr, "git-wip: not on a local branch");
-        git_libgit2_shutdown();
         return 1;
     }
 
@@ -79,14 +77,12 @@ int LogCmd::run(int argc, char *argv[]) {
     auto work_last = resolve_oid(repo, bn->work_ref);
     if (!work_last) {
         std::println(std::cerr, "git-wip: '{}' branch has no commits.", bn->work_branch);
-        git_libgit2_shutdown();
         return 1;
     }
 
     auto wip_last = resolve_oid(repo, bn->wip_ref);
     if (!wip_last) {
         std::println(std::cerr, "git-wip: '{}' has no WIP commits.", bn->work_branch);
-        git_libgit2_shutdown();
         return 1;
     }
 
@@ -106,7 +102,6 @@ int LogCmd::run(int argc, char *argv[]) {
         if (pretty) cmd += pretty_fmt;
         cmd += " " + bn->wip_ref;
         spdlog::debug("log: running: {}", cmd);
-        git_libgit2_shutdown();
         return std::system(cmd.c_str());
     }
 
@@ -114,7 +109,6 @@ int LogCmd::run(int argc, char *argv[]) {
     git_oid base_oid{};
     if (git_merge_base(&base_oid, repo, &*wip_last, &*work_last) < 0) {
         std::println(std::cerr, "git-wip: cannot find merge base: {}", git_error_str());
-        git_libgit2_shutdown();
         return 1;
     }
 
@@ -123,7 +117,7 @@ int LogCmd::run(int argc, char *argv[]) {
     // stop = base~1 if base has parents, else base itself
     std::string stop_arg;
     {
-        CommitGuard base_commit;
+        GitCommitGuard base_commit;
         std::string base_hex = oid_to_hex(&base_oid);
         if (git_commit_lookup(base_commit.ptr(), repo, &base_oid) == 0 &&
             git_commit_parentcount(base_commit.get()) > 0)
@@ -143,6 +137,5 @@ int LogCmd::run(int argc, char *argv[]) {
     cmd += " ^" + stop_arg;
 
     spdlog::debug("log: running: {}", cmd);
-    git_libgit2_shutdown();
     return std::system(cmd.c_str());
 }

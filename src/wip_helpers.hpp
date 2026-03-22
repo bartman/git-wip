@@ -72,7 +72,7 @@ inline std::optional<std::vector<git_oid>> collect_wip_commits(
     if (!git_oid_equal(&base, &work_last))
         return std::vector<git_oid>{};
 
-    RevwalkGuard walk;
+    GitRevwalkGuard walk;
     if (git_revwalk_new(walk.ptr(), repo) < 0)
         return std::nullopt;
 

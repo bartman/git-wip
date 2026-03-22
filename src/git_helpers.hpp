@@ -69,7 +69,7 @@ inline std::optional<BranchNames> resolve_branch_names(
         bn.work_branch = strip_prefix(*branch_name, "refs/heads/");
         bn.work_ref = "refs/heads/" + bn.work_branch;
     } else {
-        ReferenceGuard head_ref;
+        GitReferenceGuard head_ref;
         if (git_repository_head(head_ref.ptr(), repo) < 0)
             return std::nullopt;
         if (!git_reference_is_branch(head_ref.get()))

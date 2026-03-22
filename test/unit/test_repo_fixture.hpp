@@ -68,8 +68,6 @@ private:
         std::filesystem::remove_all(m_path);
         std::filesystem::create_directories(m_path);
 
-        git_libgit2_init();
-
         // git init
         if (git_repository_init(m_repo.ptr(), m_path.string().c_str(), /*bare=*/0) < 0)
             throw std::runtime_error("git_repository_init failed: " + last_error());
@@ -90,8 +88,7 @@ private:
 
 public:
     ~TestRepo() {
-        // repo freed by RepoGuard; libgit2 shutdown balanced by test binary init
-        git_libgit2_shutdown();
+        // repo/libgit2 cleanup handled by RAII guards
     }
 
     git_repository *repo() { return m_repo.get(); }
@@ -110,7 +107,7 @@ public:
     // Returns the OID of the new commit.
     git_oid commit(const std::string &message) {
         // Stage everything
-        IndexGuard idx;
+        GitIndexGuard idx;
         if (git_repository_index(idx.ptr(), m_repo.get()) < 0)
             throw std::runtime_error("index: " + last_error());
         git_strarray dot{nullptr, 0};
@@ -122,19 +119,19 @@ public:
         git_oid tree_oid{};
         if (git_index_write_tree(&tree_oid, idx.get()) < 0)
             throw std::runtime_error("write_tree: " + last_error());
-        TreeGuard tree;
+        GitTreeGuard tree;
         git_tree_lookup(tree.ptr(), m_repo.get(), &tree_oid);
 
         // Signature
-        SignatureGuard sig;
+        GitSignatureGuard sig;
         git_signature_now(sig.ptr(), "Test User", "test@example.com");
 
         // Parent (nullptr if this is the first commit)
         git_oid commit_oid{};
-        ReferenceGuard head_ref;
+        GitReferenceGuard head_ref;
         const git_commit *parents[1] = {nullptr};
         int n_parents = 0;
-        CommitGuard parent_commit;
+        GitCommitGuard parent_commit;
         if (git_repository_head(head_ref.ptr(), m_repo.get()) == 0) {
             git_oid parent_oid{};
             git_reference_name_to_id(&parent_oid, m_repo.get(),
@@ -157,7 +154,7 @@ public:
 
     // Create a direct reference (e.g. a wip branch).
     void create_ref(const std::string &ref_name, const git_oid &oid) {
-        ReferenceGuard ref;
+        GitReferenceGuard ref;
         git_reference_create(ref.ptr(), m_repo.get(),
                              ref_name.c_str(), &oid,
                              /*force=*/1, "test");
@@ -167,7 +164,7 @@ public:
     // Used to simulate making a real commit after WIP commits.
     void advance_head(const git_oid &oid) {
         git_repository_set_head(m_repo.get(), "refs/heads/master");
-        ReferenceGuard ref;
+        GitReferenceGuard ref;
         git_reference_create(ref.ptr(), m_repo.get(),
                              "refs/heads/master", &oid,
                              /*force=*/1, "advance_head");
@@ -179,6 +176,7 @@ private:
         return e ? e->message : "(unknown)";
     }
 
-    RepoGuard              m_repo;
-    std::filesystem::path  m_path;
+    GitLibGuard           m_git_lib_guard;
+    GitRepoGuard          m_repo;
+    std::filesystem::path m_path;
 };
