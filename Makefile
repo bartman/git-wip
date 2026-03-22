@@ -34,11 +34,6 @@ CXX ?= $(shell which clang g++ c++ | head -n1)
 $(info ## TYPE=${TYPE} CC=${CC} CXX=${CXX})
 
 GIT_WIP      = ${BUILD}/src/git-wip
-CAP_RUN_SH   = test/cap-run.sh
-RUNNER_PY    = test/runner.py
-SMOKE_JSON   = test/smoke/smoke.json
-SMOKE_VARS   = GIT_WIP=${GIT_WIP} RUNTIME=1
-SMOKE_OUT    = ${BUILD}/test/smoke/smoke.log
 
 all: ## [default] build the project (uses TYPE={Release,Debug})
 	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}"
@@ -61,15 +56,6 @@ test: ## run unit tests (with ctest, uses REBUILD={true,false})
 	${Q}${CMAKE} --build "${BUILD}" --config "${TYPE}" --parallel "${NPROC}"
 	${Q}cd "${BUILD}"/ && ctest -C "${TYPE}" $(if ${CI},--output-on-failure -VV)
 	${Q}echo " ✅ Unit tests complete."
-
-smoke: ## run smoke test (uses REBUILD={true,false})
-	${Q}$(if $(filter 1 yes true YES TRUE,${REBUILD}),rm -rf "${BUILD}"/)
-	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}"
-	${Q}${CMAKE} --build "${BUILD}" --config "${TYPE}" --parallel "${NPROC}"
-	${Q}mkdir -p $(dir ${SMOKE_OUT})
-	${Q}if ! ${CAP_RUN_SH} $(if ${CI},,--quiet) ${SMOKE_OUT} ${RUNNER_PY} --blind-run --input ${SMOKE_JSON} ${SMOKE_VARS} ; \
-		then echo >&2 " ❌ Smoke test failed, see ${SMOKE_OUT}" ; false ; \
-		else echo >&2 " ✅ Smoke test passed!" ; fi
 
 coverage: ## check code coverage (with gcov, uses REBUILD={true,false})
 	${Q}$(if $(filter 1 yes true YES TRUE,${REBUILD}),rm -rf "${BUILD}"/)

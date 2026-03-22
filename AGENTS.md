@@ -4,11 +4,12 @@
 
 - Use c++23 best practices.  Use CamelCase for classes, use snake_case for method names, variable names, etc.  Use #pragma once in headers.  Use m_ prefix for member variables.
 - use clipp for arg parsing, use spdlog for debug logging (set `WIP_DEBUG=1` to see debug), use libgit2 for git functionality
-- build with `make`, test with `make test`, check CLI option parsing with `make smoke`
+- build with `make`, test with `make test`
 - manage/install dependencies with `dependencies.sh` script
 - unit tests go into `test/unit/test_*.cpp`
 - CLI integration tests go into `test/cli/test_*.sh` — source `test/cli/lib.sh`, must be executable
 - old scripts are in `Attic/` subdirectory, we try to be backward compatible (at least for vim/ emacs/ sublime/ plugins)
+- agent will update `AGENTS.md` and `README.md` files with new information, as needed
 
 ## Test Infrastructure
 

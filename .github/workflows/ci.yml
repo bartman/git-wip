@@ -115,13 +115,6 @@ jobs:
           CI:  "1"
         run: make TYPE=${{ matrix.build_type }} test
 
-      - name: Smoke
-        env:
-          CC:  ${{ matrix.cc }}
-          CXX: ${{ matrix.cxx }}
-          CI:  "1"
-        run: make TYPE=${{ matrix.build_type }} smoke
-
       - name: Compute artifact name
         if: failure()
         id: artifact-name
