@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 SUDO=sudo
 [ "$(id -u)" = 0 ] && SUDO=
