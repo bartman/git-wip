@@ -4,10 +4,11 @@ local M = {}
 
 -- Configuration
 M.defaults = {
-  gpg_sign  = nil,       -- true for --gpg-sign, false for --no-gpg-sign
-  untracked = nil,       -- true for --untracked, false for --no-untracked
-  ignored   = nil,       -- true for --ignored, false for --no-ignored
-  filetypes = { "*" },
+  git_wip_path = "git-wip",  -- path to git-wip binary (can be absolute)
+  gpg_sign     = nil,        -- true for --gpg-sign, false for --no-gpg-sign
+  untracked    = nil,        -- true for --untracked, false for --no-untracked
+  ignored      = nil,        -- true for --ignored, false for --no-ignored
+  filetypes    = { "*" },
 }
 
 ---@type table
@@ -56,7 +57,7 @@ function M.GitWipBufWritePost()
   local filename = vim.fn.fnamemodify(fullpath, ":t") -- just the filename
 
   -- Build the command using config options
-  local cmd = { "git-wip", "save", string.format("WIP from neovim for %s", filename) }
+  local cmd = { M.config.git_wip_path, "save", string.format("WIP from neovim for %s", filename) }
 
   -- Tri-state flags
   add_tri_flag(cmd, M.config.gpg_sign, "--gpg-sign", "--no-gpg-sign")
