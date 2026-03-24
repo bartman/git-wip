@@ -68,27 +68,19 @@ function M.GitWipBufWritePost()
   table.insert(cmd, "--")
   table.insert(cmd, fullpath)   -- the actual file (full path)
 
-  -- Run it from the correct directory + time it
-  local start = vim.loop.hrtime()
+  -- Run git-wip from the correct directory
+  -- Use vim.fn.system() for compatibility with Neovim < 0.10
+  -- (vim.system() is only available in Neovim 0.10+)
+  local shell_cmd = "cd " .. vim.fn.shellescape(dir) .. " && " .. cmd[1]
+  for i = 2, #cmd do
+    shell_cmd = shell_cmd .. " " .. vim.fn.shellescape(cmd[i])
+  end
 
-  vim.system(cmd, { cwd = dir, text = true }, function(result)
-    local elapsed = (vim.loop.hrtime() - start) / 1e9
+  local output = vim.fn.system(shell_cmd)
 
-    -- Notify on the main thread (never blocks Neovim)
-    vim.schedule(function()
-      if result.code == 0 then
-        vim.notify(
-          string.format("[git-wip] saved %s in %.3f sec", filename, elapsed),
-          vim.log.levels.INFO
-        )
-      else
-        vim.notify(
-          string.format("[git-wip] failed for %s (exit %d)", filename, result.code),
-          vim.log.levels.WARN
-        )
-      end
-    end)
-  end)
+  if vim.v.shell_error ~= 0 then
+    vim.notify(string.format("[git-wip] failed for %s", filename), vim.log.levels.WARN)
+  end
 end
 
 return M
