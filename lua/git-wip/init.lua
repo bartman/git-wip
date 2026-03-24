@@ -2,6 +2,10 @@
 local vim = vim
 local M = {}
 
+-- Detect Neovim version for API compatibility
+-- vim.system is available in Neovim 0.10+
+local has_vim_system = vim.system ~= nil
+
 -- Configuration
 M.defaults = {
   git_wip_path = "git-wip",  -- path to git-wip binary (can be absolute)
@@ -69,17 +73,33 @@ function M.GitWipBufWritePost()
   table.insert(cmd, fullpath)   -- the actual file (full path)
 
   -- Run git-wip from the correct directory
-  -- Use vim.fn.system() for compatibility with Neovim < 0.10
-  -- (vim.system() is only available in Neovim 0.10+)
-  local shell_cmd = "cd " .. vim.fn.shellescape(dir) .. " && " .. cmd[1]
-  for i = 2, #cmd do
-    shell_cmd = shell_cmd .. " " .. vim.fn.shellescape(cmd[i])
-  end
+  if has_vim_system then
+    -- Neovim 0.10+: use async vim.system with job:wait()
+    local start = vim.loop.hrtime()
+    local job = vim.system(cmd, { cwd = dir, text = true })
+    local result = job:wait()
+    local elapsed = (vim.loop.hrtime() - start) / 1e9
 
-  local output = vim.fn.system(shell_cmd)
+    vim.schedule(function()
+      if result.code == 0 then
+        vim.notify(string.format("[git-wip] saved %s in %.3f sec", filename, elapsed), vim.log.levels.INFO)
+      else
+        vim.notify(string.format("[git-wip] failed for %s (exit %d)", filename, result.code), vim.log.levels.WARN)
+      end
+    end)
+  else
+    -- Neovim < 0.10: use vim.fn.system() with shell cd
+    local shell_cmd = "cd " .. vim.fn.shellescape(dir) .. " && " .. cmd[1]
+    for i = 2, #cmd do
+      shell_cmd = shell_cmd .. " " .. vim.fn.shellescape(cmd[i])
+    end
+    vim.fn.system(shell_cmd)
 
-  if vim.v.shell_error ~= 0 then
-    vim.notify(string.format("[git-wip] failed for %s", filename), vim.log.levels.WARN)
+    if vim.v.shell_error == 0 then
+      vim.notify(string.format("[git-wip] saved %s", filename), vim.log.levels.INFO)
+    else
+      vim.notify(string.format("[git-wip] failed for %s", filename), vim.log.levels.WARN)
+    end
   end
 end
 
