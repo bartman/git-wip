@@ -17,10 +17,10 @@ int SaveCmd::run(int argc, char *argv[]) {
     // -----------------------------------------------------------------------
     // 1. Parse arguments
     // -----------------------------------------------------------------------
-    bool editor_mode  = false;
+    bool editor_mode   = false;
     bool add_untracked = false;
     bool add_ignored   = false;
-    bool no_gpg_sign   = false; // accepted; libgit2 honours commit.gpgSign via config
+    bool gpg_sign      = false; // TODO: not implemented yet
     std::string message = "WIP";
     std::vector<std::string> files;
 
@@ -39,17 +39,26 @@ int SaveCmd::run(int argc, char *argv[]) {
             editor_mode = true;
         } else if (a == "--untracked" || a == "-u") {
             add_untracked = true;
+        } else if (a == "--no-untracked" || a == "-U") {
+            add_untracked = false;
         } else if (a == "--ignored" || a == "-i") {
             add_ignored = true;
+        } else if (a == "--no-ignored" || a == "-I") {
+            add_ignored = false;
+        } else if (a == "--gpg-sign") {
+            gpg_sign = true;
         } else if (a == "--no-gpg-sign") {
-            no_gpg_sign = true;
+            gpg_sign = false;
         } else if (a == "--help" || a == "-h") {
-            std::println("Usage: git-wip save [<message>] [--editor|-e] [--untracked|-u] [--ignored|-i] [--no-gpg-sign] [-- <file>...]\n");
+            std::println("Usage: git-wip save [<message>] [--editor|-e] [--[no-]untracked|-u|-U] [--[no-]ignored|-i|-I] [--[no-]gpg-sign] [-- <file>...]\n");
             //                -                     #
             std::println("    <message>             # use this message (defaults to \"WIP\")");
             std::println("    -e, --editor          # queit when there are no changes (called from editor)");
-            std::println("    -u, --untracked       # capture changes to untracked files");
-            std::println("    -i, --ignored         # capture changes to ignored files");
+            std::println("    -u, --untracked       # enable capture of changes to untracked files");
+            std::println("    -U, --no-untracked    # disable capture of changes to untracked files");
+            std::println("    -i, --ignored         # enable capture of changes to ignored files");
+            std::println("    -I, --no-ignored      # disable capture of changes to ignored files");
+            std::println("    --gpg-sign            # enable signing of commits");
             std::println("    --no-gpg-sign         # disable signing of commits");
             std::println("    <file>...             # filter on changes to specific file(s)\n");
             return 0;
@@ -64,8 +73,11 @@ int SaveCmd::run(int argc, char *argv[]) {
         }
     }
 
-    spdlog::debug("save: message='{}' editor={} untracked={} ignored={} no_gpg_sign={} files={}",
-                  message, editor_mode, add_untracked, add_ignored, no_gpg_sign, files.size());
+    spdlog::debug("save: message='{}' editor={} untracked={} ignored={} gpg_sign={} files={}",
+                  message, editor_mode, add_untracked, add_ignored, gpg_sign, files.size());
+
+    if (gpg_sign)
+        spdlog::warn("git-wip sign --gpg-sign is not implemented yet");
 
     // -----------------------------------------------------------------------
     // 2. Open repository
