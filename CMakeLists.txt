@@ -45,6 +45,7 @@ pkg_check_modules(LIBGIT2 REQUIRED libgit2)
 enable_testing()
 add_subdirectory(test/unit)
 add_subdirectory(test/cli)
+add_subdirectory(test/nvim)
 
 # the executable
 add_subdirectory(src)
