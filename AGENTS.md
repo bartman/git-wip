@@ -10,6 +10,8 @@
 - CLI integration tests go into `test/cli/test_*.sh` — source `test/cli/lib.sh`, must be executable
 - old scripts are in `Attic/` subdirectory, we try to be backward compatible (at least for vim/ emacs/ sublime/ plugins)
 - agent will update `AGENTS.md` and `README.md` files with new information, as needed
+- `lua/git-wip/init.lua` is the plugin for Neovim written in Lua
+- `vim/plugin/git-wip.vim` is the legacy plugin for Vim written in VimL -- maintained, but not actively improved
 
 ## Test Infrastructure
 
