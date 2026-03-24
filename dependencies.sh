@@ -39,6 +39,16 @@ fi
 
 echo "Detected package manager: $pkg_mgr"
 
+# sync the package database once at the start (if needed)
+case "$pkg_mgr" in
+    apt)
+        $SUDO apt update
+        ;;
+    pacman)
+        $SUDO pacman -Sy --noconfirm
+        ;;
+esac
+
 # ---------------------------------------------------------------------------
 # Package manager helpers
 # ---------------------------------------------------------------------------
@@ -60,7 +70,8 @@ function must_have_one_of() {
                 fi
                 ;;
             pacman)
-                if pacman -Q "$n" >/dev/null 2>&1 ; then
+                # Check if package exists (installed or available in repos)
+                if pacman -Si "$n" >/dev/null 2>&1 ; then
                     echo "$n"
                     return
                 fi
@@ -87,7 +98,8 @@ function want_one_of() {
                 fi
                 ;;
             pacman)
-                if pacman -Q "$n" >/dev/null 2>&1 ; then
+                # Check if package exists (installed or available in repos)
+                if pacman -Si "$n" >/dev/null 2>&1 ; then
                     echo "$n"
                     return
                 fi
