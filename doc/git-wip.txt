@@ -1,0 +1,130 @@
+*git-wip.txt*           Git WIP (Work In Progress) for Neovim
+
+==============================================================================
+Table of Contents                                      *git-wip-toc*
+
+    1. Introduction ................ |git-wip-intro|
+    2. Requirements ................ |git-wip-requirements|
+    3. Installation ................ |git-wip-installation|
+    4. Configuration ............... |git-wip-configuration|
+    5. Commands .................... |git-wip-commands|
+    6. Lua API ..................... |git-wip-lua-api|
+    7. Vim Compatibility ........... |git-wip-vim|
+    8. Examples .................... |git-wip-examples|
+
+==============================================================================
+Introduction                                           *git-wip-intro*
+
+`git-wip` automatically creates Work-In-Progress snapshots using the
+`git-wip` tool every time you save a buffer in Neovim.
+
+It works together with the C++ rewrite of `git-wip` to maintain a stack of
+temporary commits on `wip/<branch>` refs.
+
+==============================================================================
+Requirements                                        *git-wip-requirements*
+
+- Neovim >= 0.8
+- The `git-wip` binary must be in your $PATH
+- The current working directory (or its parent) must be a git repository
+
+==============================================================================
+Installation                                        *git-wip-installation*
+
+*lazy.nvim* (recommended):
+
+```lua
+{
+  "bartman/git-wip",
+  opts = {
+    -- see |git-wip-configuration|
+    untracked = true,
+    ignored = false,
+  },
+}
+```
+
+Lazy will automatically call `require("git-wip").setup(opts)`.
+
+==============================================================================
+Configuration                                       *git-wip-configuration*
+
+All options are passed in the opts table: >
+
+    gpg_sign  (boolean|nil)
+    untracked (boolean|nil)
+    ignored   (boolean|nil)
+    filetypes (string[])
+
+*gpg_sign* (boolean|nil) ~
+    Override GPG signing behavior (currently not implemented in git-wip).
+    true    → git-wip save --gpg-sign
+    false   → git-wip save --no-gpg-sign
+    nil     → use git-wip default
+
+*untracked* (boolean|nil) ~
+    Capture untracked files.
+    true    → git-wip save --untracked
+    false   → git-wip save --no-untracked
+    nil     → use git-wip default
+
+*ignored* (boolean|nil) ~
+    Capture ignored files.
+    true    → git-wip save --ignored
+    false   → git-wip save --no-ignored
+    nil     → use git-wip default
+
+*filetypes* (string[]) ~
+    List of filetypes where the plugin should run.
+    Use `"*"` for all files.
+    Default: `{"*"}`
+
+================================================================================
+Commands                                               *git-wip-commands*
+
+:Wip                                                           *:Wip*
+    Save a WIP snapshot for the current buffer.
+    The file's directory and filename are extracted from the current
+    buffer's path and passed to git-wip.
+
+    This command is useful when you want to save a snapshot without
+    writing the buffer, or when working with files outside of git.
+
+:WipAll                                                        *:WipAll*
+    Save a WIP snapshot for all changes in the current working directory.
+    The filename is omitted, so git-wip captures all changes (similar to
+    `git-wip save` without specifying files).
+
+================================================================================
+Lua API                                             *git-wip-lua-api*
+
+setup({opts})                                        *git-wip.setup()*
+    Configure the plugin and register the BufWritePost autocmd.
+    Automatically called by lazy.nvim.
+
+GitWipBufWritePost()                        *git-wip.GitWipBufWritePost()*
+    Manually trigger a snapshot (the same function used by the autocmd).
+
+==============================================================================
+Vim Compatibility                                   *git-wip-vim*
+
+This plugin also ships `vim/plugin/git-wip.vim` for classic Vim users.
+That file is ignored in Neovim.
+
+==============================================================================
+Examples                                            *git-wip-examples*
+
+```lua
+require("git-wip").setup({
+  gpg_sign = false,
+  untracked = true,
+  ignored = false,
+  filetypes = { "lua", "c", "cpp", "python" },
+})
+```
+
+On every `:w` you will see a notification like: >
+    [git-wip] saved main.cpp in 0.037 sec
+
+==============================================================================
+vim:tw=78:ts=8:noet:ft=help:norl:

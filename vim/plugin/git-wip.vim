@@ -1,5 +1,10 @@
 " ---------------------------------------------------------------------------
-" git wip stuff
+" this is a Vim plugin that launches git-wip save on every buffer write.
+
+if has('nvim')
+        " note that for Neovim, a lua script is used instead.
+        finish
+endif
 
 if !exists('g:git_wip_verbose')
         let g:git_wip_verbose = 0

@@ -1,0 +1,42 @@
+# vim: set ft=dockerfile
+FROM debian:testing
+
+WORKDIR /home/git-wip
+COPY dependencies.sh dependencies.sh
+
+# Install necessary packages
+RUN apt-get update \
+    && apt-get install -y sudo procps bash \
+    && bash dependencies.sh \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# this lets us have the same UID:GID in the container
+ARG UID
+ARG GID
+ARG USERNAME
+RUN getent group users || groupadd -g $GID users
+RUN useradd -u $UID -g $GID -m -s /bin/bash $USERNAME
+RUN echo "$USERNAME  ALL=(ALL:ALL)  NOPASSWD:SETENV: ALL" > "/etc/sudoers.d/$USERNAME"
+USER $USERNAME
+
+# Create ~/.local/bin directory, add it to the PATH
+RUN mkdir -p /home/${USERNAME}/.local/bin
+RUN echo 'export PATH=$HOME/.local/bin:$PATH' >> /home/${USERNAME}/.bashrc
+
+# Make git usable inside container
+RUN git config --global --add safe.directory /home/git-wip
+
+ARG GIT_EMAIL
+ARG GIT_NAME
+ENV GIT_EMAIL=${GIT_EMAIL}
+ENV GIT_NAME=${GIT_NAME}
+RUN git config --global user.email "${GIT_EMAIL}"
+RUN git config --global user.name "${GIT_NAME}"
+
+# Map the current directory to the container's ~/git-wip
+WORKDIR /home/git-wip
+
+# Keep running
+CMD ["tail", "-f", "/dev/null"]
+

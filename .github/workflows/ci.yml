@@ -1,0 +1,134 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+
+jobs:
+  build:
+    name: ${{ matrix.os }} / ${{ matrix.compiler }} / ${{ matrix.build_type }}
+
+    strategy:
+      fail-fast: false   # let all matrix cells run even if one fails
+      matrix:
+        include:
+          # ── Debian stable ──────────────────────────────────────────────────
+          - os: debian:stable
+            runner: ubuntu-latest
+            compiler: gcc
+            cc: gcc
+            cxx: g++
+            build_type: Release
+
+          - os: debian:stable
+            runner: ubuntu-latest
+            compiler: gcc
+            cc: gcc
+            cxx: g++
+            build_type: Debug
+
+          - os: debian:stable
+            runner: ubuntu-latest
+            compiler: clang
+            cc: clang
+            cxx: clang++
+            build_type: Release
+
+          - os: debian:stable
+            runner: ubuntu-latest
+            compiler: clang
+            cc: clang
+            cxx: clang++
+            build_type: Debug
+
+          # ── Ubuntu LTS (24.04) ─────────────────────────────────────────────
+          - os: ubuntu:24.04
+            runner: ubuntu-latest
+            compiler: gcc
+            cc: gcc
+            cxx: g++
+            build_type: Release
+
+          - os: ubuntu:24.04
+            runner: ubuntu-latest
+            compiler: gcc
+            cc: gcc
+            cxx: g++
+            build_type: Debug
+
+          - os: ubuntu:24.04
+            runner: ubuntu-latest
+            compiler: clang
+            cc: clang
+            cxx: clang++
+            build_type: Release
+
+          - os: ubuntu:24.04
+            runner: ubuntu-latest
+            compiler: clang
+            cc: clang
+            cxx: clang++
+            build_type: Debug
+
+    runs-on: ${{ matrix.runner }}
+
+    container:
+      image: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: bash dependencies.sh --compiler=${{ matrix.compiler }}
+
+      - name: Cache CMake FetchContent (spdlog, clipp, fmt)
+        uses: actions/cache@v5
+        with:
+          path: build/_deps
+          key: fetchcontent-${{ matrix.os }}-${{ matrix.compiler }}-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: |
+            fetchcontent-${{ matrix.os }}-${{ matrix.compiler }}-
+            fetchcontent-${{ matrix.os }}-
+
+      - name: Configure git identity (needed by tests that create commits)
+        run: |
+          git config --global user.email "ci@github-actions"
+          git config --global user.name  "GitHub Actions"
+          git config --global init.defaultBranch master
+
+      - name: Build
+        env:
+          CC:  ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+          CI:  "1"
+        run: make TYPE=${{ matrix.build_type }}
+
+      - name: Test
+        env:
+          CC:  ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+          CI:  "1"
+        run: make TYPE=${{ matrix.build_type }} test
+
+      - name: Compute artifact name
+        if: failure()
+        id: artifact-name
+        run: |
+          # Colons and slashes are not allowed in artifact names; replace with dashes.
+          raw="test-artifacts-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}"
+          echo "name=${raw//[:\\/]/-}" >> "$GITHUB_OUTPUT"
+
+      - name: Upload test artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.artifact-name.outputs.name }}
+          path: |
+            build/test/
+            build/Testing/
+          retention-days: 7
