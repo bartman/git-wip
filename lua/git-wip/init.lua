@@ -2,16 +2,26 @@
 local vim = vim
 local M = {}
 
--- Default configuration (matches exactly what you asked for)
+-- Configuration
 M.defaults = {
-  gpg_sign = false,
-  untracked = true,
-  ignored = true,
+  gpg_sign  = nil,       -- true for --gpg-sign, false for --no-gpg-sign
+  untracked = nil,       -- true for --untracked, false for --no-untracked
+  ignored   = nil,       -- true for --ignored, false for --no-ignored
   filetypes = { "*" },
 }
 
 ---@type table
 M.config = M.defaults
+
+---Helper for tri-state flags
+local function add_tri_flag(cmd, value, positive, negative)
+  if value == true then
+    table.insert(cmd, positive)
+  elseif value == false then
+    table.insert(cmd, negative)
+  end
+  -- nil = do nothing (git-wip default)
+end
 
 ---Setup function (automatically called by Lazy.nvim)
 ---@param opts? table
@@ -45,19 +55,13 @@ function M.GitWipBufWritePost()
   local dir = vim.fn.fnamemodify(fullpath, ":h")      -- directory part
   local filename = vim.fn.fnamemodify(fullpath, ":t") -- just the filename
 
-  -- Build the command using your config options
+  -- Build the command using config options
   local cmd = { "git-wip", "save", string.format("WIP from neovim for %s", filename) }
 
-  -- Add config-driven flags (exactly as you wanted)
-  if not M.config.gpg_sign then
-    table.insert(cmd, "--no-gpg-sign")
-  end
-  if M.config.untracked then
-    table.insert(cmd, "--untracked")
-  end
-  if M.config.ignored then
-    table.insert(cmd, "--ignored")
-  end
+  -- Tri-state flags
+  add_tri_flag(cmd, M.config.gpg_sign, "--gpg-sign", "--no-gpg-sign")
+  add_tri_flag(cmd, M.config.untracked, "--untracked", "--no-untracked")
+  add_tri_flag(cmd, M.config.ignored, "--ignored", "--no-ignored")
 
   table.insert(cmd, "--editor")
   table.insert(cmd, "--")
