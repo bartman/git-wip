@@ -93,6 +93,7 @@ packages=(
     $(want_one_of clangd)
     "${compiler_packages[@]}"
     git
+    neovim
     pkg-config
     python3
     googletest
