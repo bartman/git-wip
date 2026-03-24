@@ -12,8 +12,9 @@ Latest `git-wip` can be obtained from [github.com](http://github.com/bartman/git
 You can find out more from the original [blog post](http://www.jukie.net/bart/blog/save-everything-with-git-wip).
 
 > **Note:** `git-wip` was originally a bash script (2009).
-> This repository is a C++ rewrite; tag [v0.2](https://github.com/bartman/git-wip/releases/tag/v0.2)
-> is the last bash version.  The script was moved to `Attic/` and is no longer maintained.
+> This repository is a [C++ rewrite](http://www.jukie.net/bart/blog/git-wip-cpp-rewrite/);
+> tag [v0.2](https://github.com/bartman/git-wip/releases/tag/v0.2) is the last bash version.
+> The script was moved to `Attic/` and is no longer maintained.
 
 ---
 
