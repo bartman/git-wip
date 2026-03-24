@@ -42,8 +42,18 @@ include(FindPkgConfig)
 
 pkg_check_modules(LIBGIT2 REQUIRED libgit2)
 
+# Optional: GTest/GMock for unit tests (only available on some distros)
+find_package(GTest QUIET)
+
 enable_testing()
-add_subdirectory(test/unit)
+
+if(GTest_FOUND)
+    message(STATUS "GTest found — building unit tests")
+    add_subdirectory(test/unit)
+else()
+    message(STATUS "GTest not found — skipping unit tests")
+endif()
+
 add_subdirectory(test/cli)
 add_subdirectory(test/nvim)
 
