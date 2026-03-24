@@ -236,28 +236,29 @@ $ cp build/src/git-wip ~/bin/
 
 The vim plugin shells out to `git wip` on every file save, so the `git-wip`
 binary must be installed and on your `PATH` before the plugin will do anything.
-Verify with:
+Easiest way to do this is to run `make install`.
+
+Verify you're ready with:
 
 ```sh
 $ git wip -h
 ```
 
-**(1)** With [lazy.nvim](https://github.com/folke/lazy.nvim):
+**(1)** With [lazy.nvim](https://github.com/folke/lazy.nvim) (Neovim only):
 
 ```lua
 {
     "bartman/git-wip",
-    branch = "cpp-rewrite",
     opts = {
         gpg_sign = false,
-        untracked = false,
+        untracked = true,
         ignored = false,
         filetypes = { "*" },
     },
 },
 ```
 
-**(2)** With [Vundle](https://github.com/gmarik/Vundle.vim):
+**(2)** With [Vundle](https://github.com/gmarik/Vundle.vim) (Vim only):
 
 ```vim
 Bundle 'bartman/git-wip', {'rtp': 'vim/'}
@@ -265,11 +266,25 @@ Bundle 'bartman/git-wip', {'rtp': 'vim/'}
 
 **(3)** Copy the plugin directly:
 
+Not really recommended (or supported), but if you want to you could copy it to your Neovim plugin directory...
+
 ```sh
-$ cp vim/plugin/git-wip.vim ~/.vim/plugin/
+$ cp lua/git-wip/init.vim ~/.config/nvim/plugin/lua/git-wip.lua
+```
+and then in your `~/.config/nvim/init.lua` you will need to:
+```lua
+require("git-wip").setup({})
 ```
 
+Meanwhile if you use Vim, you can do this:
+```
+$ cp vim/plugin/git-wip.vim ~/.vim/plugin/
+```
+and Vim will pick it up from there.
+
 **(4)** Or add an autocommand to your `.vimrc`:
+
+This bypasses a plugin, just uses the executable.
 
 ```vim
 augroup git-wip
