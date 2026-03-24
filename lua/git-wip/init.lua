@@ -43,6 +43,57 @@ function M.setup(opts)
   })
 end
 
+function M.RunGitWip(dir, filename)
+  local display_name = '*'
+  if filename ~= nil then
+        display_name = filename
+  end
+
+  -- Build the command using config options
+  local cmd = { M.config.git_wip_path, "save", string.format("WIP from neovim for %s", display_name) }
+
+  -- Tri-state flags
+  add_tri_flag(cmd, M.config.gpg_sign, "--gpg-sign", "--no-gpg-sign")
+  add_tri_flag(cmd, M.config.untracked, "--untracked", "--no-untracked")
+  add_tri_flag(cmd, M.config.ignored, "--ignored", "--no-ignored")
+
+  table.insert(cmd, "--editor")
+  if filename ~= nil then
+    table.insert(cmd, "--")
+    table.insert(cmd, filename)   -- the actual file (full path)
+  end
+
+  -- Run git-wip from the correct directory
+  if has_vim_system then
+    -- Neovim 0.10+: use async vim.system with job:wait()
+    local start = vim.loop.hrtime()
+    local job = vim.system(cmd, { cwd = dir, text = true })
+    local result = job:wait()
+    local elapsed = (vim.loop.hrtime() - start) / 1e9
+
+    vim.schedule(function()
+      if result.code == 0 then
+        vim.notify(string.format("[git-wip] saved %s in %.3f sec", display_name, elapsed), vim.log.levels.INFO)
+      else
+        vim.notify(string.format("[git-wip] failed for %s (exit %d)", display_name, result.code), vim.log.levels.WARN)
+      end
+    end)
+  else
+    -- Neovim < 0.10: use vim.fn.system() with shell cd
+    local shell_cmd = "cd " .. vim.fn.shellescape(dir) .. " && " .. cmd[1]
+    for i = 2, #cmd do
+      shell_cmd = shell_cmd .. " " .. vim.fn.shellescape(cmd[i])
+    end
+    vim.fn.system(shell_cmd)
+
+    if vim.v.shell_error == 0 then
+      vim.notify(string.format("[git-wip] saved %s", display_name), vim.log.levels.INFO)
+    else
+      vim.notify(string.format("[git-wip] failed for %s", display_name), vim.log.levels.WARN)
+    end
+  end
+end
+
 function M.GitWipBufWritePost()
   local fullpath = vim.api.nvim_buf_get_name(0)
   if fullpath == "" then
@@ -60,47 +111,7 @@ function M.GitWipBufWritePost()
   local dir = vim.fn.fnamemodify(fullpath, ":h")      -- directory part
   local filename = vim.fn.fnamemodify(fullpath, ":t") -- just the filename
 
-  -- Build the command using config options
-  local cmd = { M.config.git_wip_path, "save", string.format("WIP from neovim for %s", filename) }
-
-  -- Tri-state flags
-  add_tri_flag(cmd, M.config.gpg_sign, "--gpg-sign", "--no-gpg-sign")
-  add_tri_flag(cmd, M.config.untracked, "--untracked", "--no-untracked")
-  add_tri_flag(cmd, M.config.ignored, "--ignored", "--no-ignored")
-
-  table.insert(cmd, "--editor")
-  table.insert(cmd, "--")
-  table.insert(cmd, fullpath)   -- the actual file (full path)
-
-  -- Run git-wip from the correct directory
-  if has_vim_system then
-    -- Neovim 0.10+: use async vim.system with job:wait()
-    local start = vim.loop.hrtime()
-    local job = vim.system(cmd, { cwd = dir, text = true })
-    local result = job:wait()
-    local elapsed = (vim.loop.hrtime() - start) / 1e9
-
-    vim.schedule(function()
-      if result.code == 0 then
-        vim.notify(string.format("[git-wip] saved %s in %.3f sec", filename, elapsed), vim.log.levels.INFO)
-      else
-        vim.notify(string.format("[git-wip] failed for %s (exit %d)", filename, result.code), vim.log.levels.WARN)
-      end
-    end)
-  else
-    -- Neovim < 0.10: use vim.fn.system() with shell cd
-    local shell_cmd = "cd " .. vim.fn.shellescape(dir) .. " && " .. cmd[1]
-    for i = 2, #cmd do
-      shell_cmd = shell_cmd .. " " .. vim.fn.shellescape(cmd[i])
-    end
-    vim.fn.system(shell_cmd)
-
-    if vim.v.shell_error == 0 then
-      vim.notify(string.format("[git-wip] saved %s", filename), vim.log.levels.INFO)
-    else
-      vim.notify(string.format("[git-wip] failed for %s", filename), vim.log.levels.WARN)
-    end
-  end
+  M.RunGitWip(dir, filename)
 end
 
 return M
