@@ -247,14 +247,13 @@ $ git wip -h
 ```lua
 {
     "bartman/git-wip",
-    branch = "cpp-rewrite",        -- temporary until merged to master
-    subdir = "vim",
-    lazy = false,
-    init = function()
-        -- optional settings:
-        -- vim.g.git_wip_verbose = 1          -- print a message on each save
-        -- vim.g.git_wip_disable_signing = 1  -- skip GPG signing
-    end,
+    branch = "cpp-rewrite",
+    opts = {
+        gpg_sign = false,
+        untracked = false,
+        ignored = false,
+        filetypes = { "*" },
+    },
 },
 ```
 

@@ -2,7 +2,7 @@
 build/
 .cache/
 .opencode/
-git-wip
+/git-wip
 
 ### C++
 # Prerequisites
