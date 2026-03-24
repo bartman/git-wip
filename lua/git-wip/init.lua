@@ -41,6 +41,27 @@ function M.setup(opts)
     callback = M.GitWipBufWritePost,
     desc = "git-wip: run after buffer write",
   })
+
+  -- Register commands
+  vim.api.nvim_create_user_command("Wip", function()
+    local fullpath = vim.api.nvim_buf_get_name(0)
+    if fullpath == "" then
+      vim.notify("[git-wip] no file name for current buffer", vim.log.levels.ERROR)
+      return
+    end
+    local dir = vim.fn.fnamemodify(fullpath, ":h")
+    local filename = vim.fn.fnamemodify(fullpath, ":t")
+    M.RunGitWip(dir, filename)
+  end, {
+    desc = "Save WIP snapshot for the current buffer",
+  })
+
+  vim.api.nvim_create_user_command("WipAll", function()
+    local dir = vim.fn.getcwd()
+    M.RunGitWip(dir, nil)
+  end, {
+    desc = "Save WIP snapshot for all changes in the current directory",
+  })
 end
 
 function M.RunGitWip(dir, filename)

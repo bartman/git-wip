@@ -7,9 +7,10 @@ Table of Contents                                      *git-wip-toc*
     2. Requirements ................ |git-wip-requirements|
     3. Installation ................ |git-wip-installation|
     4. Configuration ............... |git-wip-configuration|
-    5. Lua API ..................... |git-wip-lua-api|
-    6. Vim Compatibility ........... |git-wip-vim|
-    7. Examples .................... |git-wip-examples|
+    5. Commands .................... |git-wip-commands|
+    6. Lua API ..................... |git-wip-lua-api|
+    7. Vim Compatibility ........... |git-wip-vim|
+    8. Examples .................... |git-wip-examples|
 
 ==============================================================================
 Introduction                                           *git-wip-intro*
@@ -78,7 +79,23 @@ All options are passed in the opts table: >
     Use `"*"` for all files.
     Default: `{"*"}`
 
-==============================================================================
+================================================================================
+Commands                                               *git-wip-commands*
+
+:Wip                                                           *:Wip*
+    Save a WIP snapshot for the current buffer.
+    The file's directory and filename are extracted from the current
+    buffer's path and passed to git-wip.
+
+    This command is useful when you want to save a snapshot without
+    writing the buffer, or when working with files outside of git.
+
+:WipAll                                                        *:WipAll*
+    Save a WIP snapshot for all changes in the current working directory.
+    The filename is omitted, so git-wip captures all changes (similar to
+    `git-wip save` without specifying files).
+
+================================================================================
 Lua API                                             *git-wip-lua-api*
 
 setup({opts})                                        *git-wip.setup()*
