@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 SUDO=sudo
 [ "$(id -u)" = 0 ] && SUDO=
@@ -28,13 +29,25 @@ if command -v apt &>/dev/null; then
     pkg_mgr=apt
 elif command -v dnf &>/dev/null; then
     pkg_mgr=dnf
+elif command -v pacman &>/dev/null; then
+    pkg_mgr=pacman
 elif command -v nix &>/dev/null; then
     die "Nix detected but no shell.nix found. Run 'nix develop' to start a dev shell."
 else
-    die "Unsupported system: no apt, dnf, or nix found. dependencies.sh does not support this OS."
+    die "Unsupported system: no apt, dnf, pacman, or nix found. dependencies.sh does not support this OS."
 fi
 
 echo "Detected package manager: $pkg_mgr"
+
+# sync the package database once at the start (if needed)
+case "$pkg_mgr" in
+    apt)
+        $SUDO apt update
+        ;;
+    pacman)
+        $SUDO pacman -Sy --noconfirm
+        ;;
+esac
 
 # ---------------------------------------------------------------------------
 # Package manager helpers
@@ -56,6 +69,13 @@ function must_have_one_of() {
                     return
                 fi
                 ;;
+            pacman)
+                # Check if package exists (installed or available in repos)
+                if pacman -Si "$n" >/dev/null 2>&1 ; then
+                    echo "$n"
+                    return
+                fi
+                ;;
         esac
     done
     die "$pkg_mgr cannot find any of these packages: ${pkg_names[*]}"
@@ -73,6 +93,13 @@ function want_one_of() {
                 ;;
             dnf)
                 if dnf list installed "$n" >/dev/null 2>&1 ; then
+                    echo "$n"
+                    return
+                fi
+                ;;
+            pacman)
+                # Check if package exists (installed or available in repos)
+                if pacman -Si "$n" >/dev/null 2>&1 ; then
                     echo "$n"
                     return
                 fi
@@ -123,7 +150,12 @@ compiler_packages=()
 
 case "$compiler" in
     gcc|gnu|g++)
-        compiler_packages+=( gcc g++ )
+        # On Arch, gcc includes both C and C++ compilers (no separate g++ package)
+        if [ "$pkg_mgr" = "pacman" ]; then
+            compiler_packages+=( gcc )
+        else
+            compiler_packages+=( gcc g++ )
+        fi
         ;;
     clang)
         compiler_packages+=( "$(must_have_one_of clang)" )
@@ -131,10 +163,17 @@ case "$compiler" in
     "")
         # No preference — pick whatever is available, prefer clang for the
         # C compiler slot and gcc for the C++ slot (matches the old behaviour).
-        compiler_packages+=(
-            "$(must_have_one_of clang gcc)"
-            "$(must_have_one_of clang g++)"
-        )
+        if [ "$pkg_mgr" = "pacman" ]; then
+            # On Arch, gcc package includes both C and C++ compilers
+            compiler_packages+=(
+                "$(must_have_one_of clang gcc)"
+            )
+        else
+            compiler_packages+=(
+                "$(must_have_one_of clang gcc)"
+                "$(must_have_one_of clang g++)"
+            )
+        fi
         ;;
 esac
 
@@ -158,7 +197,7 @@ want_one_of clangd && packages+=($(want_one_of clangd))
 # Compiler packages
 packages+=("${compiler_packages[@]}")
 
-# Build tools (different package names between apt and dnf)
+# Build tools (different package names between apt, dnf, and pacman)
 case "$pkg_mgr" in
     apt)
         packages+=(
@@ -175,6 +214,20 @@ case "$pkg_mgr" in
             libgit2-devel
         )
         ;;
+    pacman)
+        # Arch uses different package names
+        packages+=(
+            libgit2
+        )
+        # Replace base packages with Arch equivalents
+        packages=( "${packages[@]/ninja-build/ninja}" )
+        packages=( "${packages[@]/pkg-config/pkgconf}" )
+        packages=( "${packages[@]/python3/python}" )
+        # For clang, ensure C++ standard library is available
+        if [ "$compiler" = "clang" ] || [ "$compiler" = "" ]; then
+            packages+=( gcc-libs )
+        fi
+        ;;
 esac
 
 set -e -x
@@ -186,5 +239,8 @@ case "$pkg_mgr" in
         ;;
     dnf)
         $SUDO dnf install -y "${packages[@]}"
+        ;;
+    pacman)
+        $SUDO pacman -Sy --noconfirm "${packages[@]}"
         ;;
 esac
