@@ -101,6 +101,35 @@ jobs:
             cxx: clang++
             build_type: Debug
 
+          # ── Arch Linux (stable) ───────────────────────────────────────────────
+          - os: archlinux:latest
+            runner: ubuntu-latest
+            compiler: gcc
+            cc: gcc
+            cxx: g++
+            build_type: Release
+
+          - os: archlinux:latest
+            runner: ubuntu-latest
+            compiler: gcc
+            cc: gcc
+            cxx: g++
+            build_type: Debug
+
+          - os: archlinux:latest
+            runner: ubuntu-latest
+            compiler: clang
+            cc: clang
+            cxx: clang++
+            build_type: Release
+
+          - os: archlinux:latest
+            runner: ubuntu-latest
+            compiler: clang
+            cc: clang
+            cxx: clang++
+            build_type: Debug
+
     runs-on: ${{ matrix.runner }}
 
     container:
