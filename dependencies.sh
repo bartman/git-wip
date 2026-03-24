@@ -8,22 +8,76 @@ function die() {
     exit 1
 }
 
+# ---------------------------------------------------------------------------
+# Detect package manager
+# ---------------------------------------------------------------------------
+
+if command -v nix &>/dev/null && [ -e ~/.nix-profile/etc/profile.d/nix.sh ]; then
+    # shellcheck disable=SC1091
+    source ~/.nix-profile/etc/profile.d/nix.sh
+fi
+
+if command -v nix-shell &>/dev/null || command -v nix &>/dev/null; then
+    if [ -f shell.nix ] || [ -f default.nix ]; then
+        die "Nix detected. Run 'nix develop' to enter a dev shell."
+    fi
+fi
+
+pkg_mgr=""
+if command -v apt &>/dev/null; then
+    pkg_mgr=apt
+elif command -v dnf &>/dev/null; then
+    pkg_mgr=dnf
+elif command -v nix &>/dev/null; then
+    die "Nix detected but no shell.nix found. Run 'nix develop' to start a dev shell."
+else
+    die "Unsupported system: no apt, dnf, or nix found. dependencies.sh does not support this OS."
+fi
+
+echo "Detected package manager: $pkg_mgr"
+
+# ---------------------------------------------------------------------------
+# Package manager helpers
+# ---------------------------------------------------------------------------
+
 function must_have_one_of() {
-    for n in "$@" ; do
-        if apt policy "$n" >/dev/null 2>&1 ; then
-            echo "$n"
-            return
-        fi
+    local pkg_names=("$@")
+    for n in "${pkg_names[@]}" ; do
+        case "$pkg_mgr" in
+            apt)
+                if apt policy "$n" >/dev/null 2>&1 ; then
+                    echo "$n"
+                    return
+                fi
+                ;;
+            dnf)
+                if dnf list installed "$n" >/dev/null 2>&1 ; then
+                    echo "$n"
+                    return
+                fi
+                ;;
+        esac
     done
-    die "apt cannot find any of these packages: $*"
+    die "$pkg_mgr cannot find any of these packages: ${pkg_names[*]}"
 }
 
 function want_one_of() {
-    for n in "$@" ; do
-        if apt policy "$n" >/dev/null 2>&1 ; then
-            echo "$n"
-            return
-        fi
+    local pkg_names=("$@")
+    for n in "${pkg_names[@]}" ; do
+        case "$pkg_mgr" in
+            apt)
+                if apt policy "$n" >/dev/null 2>&1 ; then
+                    echo "$n"
+                    return
+                fi
+                ;;
+            dnf)
+                if dnf list installed "$n" >/dev/null 2>&1 ; then
+                    echo "$n"
+                    return
+                fi
+                ;;
+        esac
     done
 }
 
@@ -72,14 +126,14 @@ case "$compiler" in
         compiler_packages+=( gcc g++ )
         ;;
     clang)
-        compiler_packages+=( $(must_have_one_of clang) )
+        compiler_packages+=( "$(must_have_one_of clang)" )
         ;;
     "")
         # No preference — pick whatever is available, prefer clang for the
         # C compiler slot and gcc for the C++ slot (matches the old behaviour).
         compiler_packages+=(
-            $(must_have_one_of clang gcc)
-            $(must_have_one_of clang g++)
+            "$(must_have_one_of clang gcc)"
+            "$(must_have_one_of clang g++)"
         )
         ;;
 esac
@@ -90,20 +144,47 @@ esac
 
 packages=(
     cmake
-    $(want_one_of clangd)
-    "${compiler_packages[@]}"
     git
-    neovim
-    pkg-config
-    python3
-    googletest
-    libgmock-dev
-    libgtest-dev
-    libgit2-dev
     make
     ninja-build
+    pkg-config
+    python3
 )
 
+# Optional packages (only install if available)
+want_one_of clangd && packages+=($(want_one_of clangd))
+#want_one_of valgrind && packages+=($(want_one_of valgrind))
+
+# Compiler packages
+packages+=("${compiler_packages[@]}")
+
+# Build tools (different package names between apt and dnf)
+case "$pkg_mgr" in
+    apt)
+        packages+=(
+            googletest
+            libgmock-dev
+            libgtest-dev
+            libgit2-dev
+        )
+        ;;
+    dnf)
+        packages+=(
+            gtest-devel
+            gmock-devel
+            libgit2-devel
+        )
+        ;;
+esac
+
 set -e -x
-$SUDO apt update
-$SUDO apt install -y "${packages[@]}"
+
+case "$pkg_mgr" in
+    apt)
+        $SUDO apt update
+        $SUDO apt install -y "${packages[@]}"
+        ;;
+    dnf)
+        $SUDO dnf install -y "${packages[@]}"
+        ;;
+esac

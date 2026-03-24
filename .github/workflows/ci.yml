@@ -72,6 +72,35 @@ jobs:
             cxx: clang++
             build_type: Debug
 
+          # ── Fedora (latest) ───────────────────────────────────────────────────
+          - os: fedora:latest
+            runner: ubuntu-latest
+            compiler: gcc
+            cc: gcc
+            cxx: g++
+            build_type: Release
+
+          - os: fedora:latest
+            runner: ubuntu-latest
+            compiler: gcc
+            cc: gcc
+            cxx: g++
+            build_type: Debug
+
+          - os: fedora:latest
+            runner: ubuntu-latest
+            compiler: clang
+            cc: clang
+            cxx: clang++
+            build_type: Release
+
+          - os: fedora:latest
+            runner: ubuntu-latest
+            compiler: clang
+            cc: clang
+            cxx: clang++
+            build_type: Debug
+
     runs-on: ${{ matrix.runner }}
 
     container:
