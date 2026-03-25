@@ -232,7 +232,7 @@ jobs:
 
       - name: Collect coverage data
         run: |
-          gcovr --sonarqube coverage.xml \
+          gcovr --cobertura coverage.xml \
             --gcov-executable 'llvm-cov gcov' \
             --gcov-ignore-errors=no_working_dir_found \
             --exclude 'build/_deps/' \
