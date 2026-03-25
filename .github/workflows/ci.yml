@@ -239,6 +239,11 @@ jobs:
             --exclude 'test/' \
             --root .
 
+      - name: Verify coverage file
+        run: |
+          ls -la coverage.xml
+          head -50 coverage.xml
+
       - name: Install codecov dependencies
         env:
           DEBIAN_FRONTEND: noninteractive
@@ -251,3 +256,5 @@ jobs:
           files: ./coverage.xml
           flags: unittests
           name: debian-stable-clang-debug
+          verbose: true
+          fail_ci_if_error: true
