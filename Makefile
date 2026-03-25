@@ -32,6 +32,12 @@ NPROC ?= $(shell nproc || echo 1)
 CC ?= $(shell which clang gcc cc | head -n1)
 CXX ?= $(shell which clang g++ c++ | head -n1)
 COVERAGE ?= false
+# Locate the right gcov-compatible tool to match the compiler:
+# - if CC is clang, use llvm-cov (prefer plain symlink, fall back to versioned)
+# - otherwise use plain gcov
+# Use = (recursive) not := (immediate) so CC override on the command line is respected.
+_IS_CLANG = $(shell $(CC) --version 2>/dev/null | grep -c clang)
+GCOV_TOOL = $(if $(filter 1,$(_IS_CLANG)),$(shell which llvm-cov 2>/dev/null || ls /usr/bin/llvm-cov-* 2>/dev/null | sort -V | tail -1) gcov,gcov)
 $(info ## TYPE=${TYPE} CC=${CC} CXX=${CXX} COVERAGE=${COVERAGE})
 
 # Coverage flag for CMake
@@ -63,13 +69,19 @@ test: ## run unit tests (with ctest, uses REBUILD={true,false}, COVERAGE={true,f
 
 coverage: ## check code coverage (with lcov), uses REBUILD={true,false})
 	${Q}$(if $(filter 1 yes true YES TRUE,${REBUILD}),rm -rf "${BUILD}"/)
-	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}" -DWIP_COVERAGE=ON
+	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}" -DWIP_COVERAGE=ON -DCMAKE_C_COMPILER="${CC}" -DCMAKE_CXX_COMPILER="${CXX}"
 	${Q}${CMAKE} --build "${BUILD}" --config "${TYPE}" --parallel "${NPROC}"
 	${Q}cd "${BUILD}"/ && ctest -C "${TYPE}" -VV
-	${Q}lcov --capture --directory "${BUILD}" --gcov-tool "llvm-cov gcov" --output-file coverage.info
-	${Q}lcov --remove coverage.info '/usr/*' '*/${BUILD}/_deps/*' '*/test/*' --output-file coverage.info
+	${Q}printf '#!/bin/sh\nexec $(GCOV_TOOL) "$$@"\n' > "${BUILD}/gcov-tool.sh" && chmod +x "${BUILD}/gcov-tool.sh"
+	${Q}lcov --capture --directory "${BUILD}" --gcov-tool "${BUILD}/gcov-tool.sh" \
+		--ignore-errors inconsistent,inconsistent,format,unsupported \
+		--output-file coverage.info
+	${Q}lcov --remove coverage.info '/usr/*' '*/${BUILD}/_deps/*' '*/test/*' \
+		--ignore-errors inconsistent,inconsistent,format,unsupported \
+		--output-file coverage.info
 	${Q}mkdir -p coverage-report
-	${Q}genhtml coverage.info --output-directory coverage-report
+	${Q}genhtml coverage.info --output-directory coverage-report \
+		--ignore-errors inconsistent,inconsistent,corrupt,unsupported,category
 	${Q}echo " ✅ Coverage report generated in coverage-report/"
 
 install: ## install the package (to the `PREFIX`, uses REBUILD={true,false})

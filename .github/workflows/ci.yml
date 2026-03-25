@@ -232,11 +232,17 @@ jobs:
 
       - name: Collect coverage data
         run: |
+          LLVM_COV=$(which llvm-cov 2>/dev/null || ls /usr/bin/llvm-cov-* | sort -V | tail -1)
+          echo "Using llvm-cov: $LLVM_COV"
+          printf '#!/bin/sh\nexec "%s" gcov "$@"\n' "$LLVM_COV" > build/gcov-tool.sh
+          chmod +x build/gcov-tool.sh
           lcov --capture --directory build \
-               --gcov-tool "llvm-cov gcov" \
+               --gcov-tool build/gcov-tool.sh \
+               --ignore-errors inconsistent,inconsistent,format,unsupported \
                --output-file coverage.info
           lcov --remove coverage.info \
                '/usr/*' '*/build/_deps/*' '*/test/*' \
+               --ignore-errors inconsistent,inconsistent,format,unsupported \
                --output-file coverage.info
           lcov --list coverage.info
 
