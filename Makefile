@@ -31,12 +31,16 @@ TYPE ?= $(if ${CURRENT_TYPE},${CURRENT_TYPE},${DEFAULT_TYPE})
 NPROC ?= $(shell nproc || echo 1)
 CC ?= $(shell which clang gcc cc | head -n1)
 CXX ?= $(shell which clang g++ c++ | head -n1)
-$(info ## TYPE=${TYPE} CC=${CC} CXX=${CXX})
+COVERAGE ?= false
+$(info ## TYPE=${TYPE} CC=${CC} CXX=${CXX} COVERAGE=${COVERAGE})
+
+# Coverage flag for CMake
+COVERAGE_FLAG = $(if $(filter 1 yes true YES TRUE,${COVERAGE}),-DWIP_COVERAGE=ON,)
 
 GIT_WIP      = ${BUILD}/src/git-wip
 
-all: ## [default] build the project (uses TYPE={Release,Debug})
-	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}"
+all: ## [default] build the project (uses TYPE={Release,Debug}, COVERAGE={true,false})
+	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}" ${COVERAGE_FLAG}
 	${Q}${CMAKE} --build "${BUILD}" --config "${TYPE}" --parallel "${NPROC}"
 	${Q}ln -fs "${BUILD}"/compile_commands.json compile_commands.json
 	${Q}ln -fs "${GIT_WIP}" .
@@ -50,19 +54,21 @@ distclean: ## remove build directory completely
 help:
 	${Q}python3 -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
-test: ## run unit tests (with ctest, uses REBUILD={true,false})
+test: ## run unit tests (with ctest, uses REBUILD={true,false}, COVERAGE={true,false})
 	${Q}$(if $(filter 1 yes true YES TRUE,${REBUILD}),rm -rf "${BUILD}"/)
-	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}"
+	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}" ${COVERAGE_FLAG}
 	${Q}${CMAKE} --build "${BUILD}" --config "${TYPE}" --parallel "${NPROC}"
 	${Q}cd "${BUILD}"/ && ctest -C "${TYPE}" $(if ${CI},--output-on-failure -VV)
 	${Q}echo " ✅ Unit tests complete."
 
-coverage: ## check code coverage (with gcov, uses REBUILD={true,false})
+coverage: ## check code coverage (with gcovr, uses REBUILD={true,false})
 	${Q}$(if $(filter 1 yes true YES TRUE,${REBUILD}),rm -rf "${BUILD}"/)
-	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}"
+	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}" -DWIP_COVERAGE=ON
 	${Q}${CMAKE} --build "${BUILD}" --config "${TYPE}" --parallel "${NPROC}"
 	${Q}cd "${BUILD}"/ && ctest -C "${TYPE}" -VV
-	${Q}find "${BUILD}"/ -type f -name '*.gcno' -exec gcov -pb {} +
+	${Q}mkdir -p coverage-report
+	${Q}gcovr --html coverage-report/index.html --root . "${BUILD}"
+	${Q}echo " ✅ Coverage report generated in coverage-report/"
 
 install: ## install the package (to the `PREFIX`, uses REBUILD={true,false})
 	${Q}$(if $(filter 1 yes true YES TRUE,${REBUILD}),rm -rf "${BUILD}"/)

@@ -4,6 +4,9 @@ build/
 .opencode/
 /git-wip
 
+coverage-report/
+coverage.xml
+
 ### C++
 # Prerequisites
 *.d
