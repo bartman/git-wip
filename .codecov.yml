@@ -22,6 +22,12 @@ ignore:
   - "build/_deps/**/*"
   - "test/**/*"
 
+# Strip the GitHub Actions container-mount prefix (/__w/<owner>/<repo>/)
+# from paths emitted by gcovr --root "$GITHUB_WORKSPACE".
+# Without this, Codecov cannot match coverage lines to repo files.
+fixes:
+  - "/__w/git-wip/git-wip/::"
+
 comment:
   layout: "reach,diff,flags,files,footer"
   behavior: default
