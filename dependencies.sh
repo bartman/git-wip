@@ -205,7 +205,7 @@ case "$pkg_mgr" in
             libgmock-dev
             libgtest-dev
             libgit2-dev
-            gcovr
+            lcov
         )
         ;;
     dnf)
@@ -213,14 +213,14 @@ case "$pkg_mgr" in
             gtest-devel
             gmock-devel
             libgit2-devel
-            gcovr
+            lcov
         )
         ;;
     pacman)
         # Arch uses different package names
         packages+=(
             libgit2
-            gcovr
+            lcov
         )
         # Replace base packages with Arch equivalents
         packages=( "${packages[@]/ninja-build/ninja}" )

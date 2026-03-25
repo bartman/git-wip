@@ -232,28 +232,19 @@ jobs:
 
       - name: Collect coverage data
         run: |
-          gcovr --cobertura coverage.xml \
-            --gcov-executable 'llvm-cov gcov' \
-            --gcov-ignore-errors=no_working_dir_found \
-            --exclude 'build/_deps/' \
-            --exclude 'test/' \
-            --root "$GITHUB_WORKSPACE"
-
-      - name: Verify coverage file
-        run: |
-          ls -la coverage.xml
-          head -50 coverage.xml
-
-      - name: Install codecov dependencies
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: apt-get update && apt-get install -y curl gpg
+          lcov --capture --directory build \
+               --gcov-tool "llvm-cov gcov" \
+               --output-file coverage.info
+          lcov --remove coverage.info \
+               '/usr/*' '*/build/_deps/*' '*/test/*' \
+               --output-file coverage.info
+          lcov --list coverage.info
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage.xml
+          files: ./coverage.info
           flags: unittests
           name: debian-stable-clang-debug
           verbose: true

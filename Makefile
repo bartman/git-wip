@@ -61,13 +61,15 @@ test: ## run unit tests (with ctest, uses REBUILD={true,false}, COVERAGE={true,f
 	${Q}cd "${BUILD}"/ && ctest -C "${TYPE}" $(if ${CI},--output-on-failure -VV)
 	${Q}echo " ✅ Unit tests complete."
 
-coverage: ## check code coverage (with gcovr, uses REBUILD={true,false})
+coverage: ## check code coverage (with lcov), uses REBUILD={true,false})
 	${Q}$(if $(filter 1 yes true YES TRUE,${REBUILD}),rm -rf "${BUILD}"/)
 	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}" -DWIP_COVERAGE=ON
 	${Q}${CMAKE} --build "${BUILD}" --config "${TYPE}" --parallel "${NPROC}"
 	${Q}cd "${BUILD}"/ && ctest -C "${TYPE}" -VV
+	${Q}lcov --capture --directory "${BUILD}" --gcov-tool "llvm-cov gcov" --output-file coverage.info
+	${Q}lcov --remove coverage.info '/usr/*' '*/${BUILD}/_deps/*' '*/test/*' --output-file coverage.info
 	${Q}mkdir -p coverage-report
-	${Q}gcovr --html coverage-report/index.html --root . "${BUILD}"
+	${Q}genhtml coverage.info --output-directory coverage-report
 	${Q}echo " ✅ Coverage report generated in coverage-report/"
 
 install: ## install the package (to the `PREFIX`, uses REBUILD={true,false})
