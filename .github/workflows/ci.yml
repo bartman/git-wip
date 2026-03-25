@@ -192,7 +192,7 @@ jobs:
           retention-days: 7
 
   coverage:
-    name: Coverage (debian:stable / clang / Debug)
+    name: Coverage (debian:stable / gcc / Debug)
 
     runs-on: ubuntu-latest
 
@@ -206,7 +206,7 @@ jobs:
       - name: Install dependencies
         env:
           DEBIAN_FRONTEND: noninteractive
-        run: bash dependencies.sh --compiler=clang
+        run: bash dependencies.sh --compiler=gcc
 
       - name: Cache CMake FetchContent (spdlog, clipp, fmt)
         uses: actions/cache@v5
@@ -224,27 +224,20 @@ jobs:
 
       - name: Build with coverage
         env:
-          CC:  clang
-          CXX: clang++
+          CC:  gcc
+          CXX: g++
           CI:  "1"
           COVERAGE: "1"
         run: make TYPE=Debug test
 
       - name: Collect coverage data
         run: |
-          LLVM_COV=$(which llvm-cov 2>/dev/null || ls /usr/bin/llvm-cov-* | sort -V | tail -1)
-          echo "Using llvm-cov: $LLVM_COV"
-          printf '#!/bin/sh\nexec "%s" gcov "$@"\n' "$LLVM_COV" > build/gcov-tool.sh
-          chmod +x build/gcov-tool.sh
           lcov --capture --directory build \
-               --gcov-tool build/gcov-tool.sh \
-               --ignore-errors inconsistent,inconsistent,format,unsupported \
+               --gcov-tool gcov \
                --output-file coverage.info
           lcov --remove coverage.info \
                '/usr/*' '*/build/_deps/*' '*/test/*' \
-               --ignore-errors inconsistent,inconsistent,format,unsupported \
                --output-file coverage.info
-          lcov --list coverage.info
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v5
@@ -252,6 +245,6 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.info
           flags: unittests
-          name: debian-stable-clang-debug
+          name: debian-stable-gcc-debug
           verbose: true
           fail_ci_if_error: true

@@ -74,14 +74,25 @@ coverage: ## check code coverage (with lcov), uses REBUILD={true,false})
 	${Q}cd "${BUILD}"/ && ctest -C "${TYPE}" -VV
 	${Q}printf '#!/bin/sh\nexec $(GCOV_TOOL) "$$@"\n' > "${BUILD}/gcov-tool.sh" && chmod +x "${BUILD}/gcov-tool.sh"
 	${Q}lcov --capture --directory "${BUILD}" --gcov-tool "${BUILD}/gcov-tool.sh" \
-		--ignore-errors inconsistent,inconsistent,format,unsupported \
+		--ignore-errors inconsistent \
+		--ignore-errors inconsistent \
+		--ignore-errors format \
+		--ignore-errors unsupported \
 		--output-file coverage.info
 	${Q}lcov --remove coverage.info '/usr/*' '*/${BUILD}/_deps/*' '*/test/*' \
-		--ignore-errors inconsistent,inconsistent,format,unsupported \
+		--ignore-errors inconsistent \
+		--ignore-errors inconsistent \
+		--ignore-errors format \
+		--ignore-errors unsupported \
+		--ignore-errors corrupt \
 		--output-file coverage.info
 	${Q}mkdir -p coverage-report
 	${Q}genhtml coverage.info --output-directory coverage-report \
-		--ignore-errors inconsistent,inconsistent,corrupt,unsupported,category
+		--ignore-errors inconsistent \
+		--ignore-errors inconsistent \
+		--ignore-errors corrupt \
+		--ignore-errors unsupported \
+		--ignore-errors category
 	${Q}echo " ✅ Coverage report generated in coverage-report/"
 
 install: ## install the package (to the `PREFIX`, uses REBUILD={true,false})
