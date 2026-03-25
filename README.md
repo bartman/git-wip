@@ -1,7 +1,7 @@
 # About
 
 [![CI](https://github.com/bartman/git-wip/actions/workflows/ci.yml/badge.svg)](https://github.com/bartman/git-wip/actions)
-[![Codecov](https://codecov.io/gh/bartman/git-wip/branch/main/graph/badge.svg)](https://codecov.io/gh/bartman/git-wip)
+[![Codecov](https://codecov.io/gh/bartman/git-wip/branch/master/graph/badge.svg)](https://codecov.io/gh/bartman/git-wip)
 
 `git-wip` manages **Work In Progress** (or **WIP**) branches.
 WIP branches are mostly throw-away but capture points of development
