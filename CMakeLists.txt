@@ -8,6 +8,13 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Enable generation of compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+# Code coverage options
+option(WIP_COVERAGE "Enable code coverage instrumentation" OFF)
+if(WIP_COVERAGE)
+    add_compile_options(-fprofile-arcs -ftest-coverage)
+    add_link_options(-fprofile-arcs -ftest-coverage)
+endif()
+
 include(FetchContent)
 include(CheckCXXSourceCompiles)
 

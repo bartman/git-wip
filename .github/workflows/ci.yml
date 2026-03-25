@@ -190,3 +190,64 @@ jobs:
             build/test/
             build/Testing/
           retention-days: 7
+
+  coverage:
+    name: Coverage (debian:stable / clang / Debug)
+
+    runs-on: ubuntu-latest
+
+    container:
+      image: debian:stable
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: bash dependencies.sh --compiler=clang
+
+      - name: Cache CMake FetchContent (spdlog, clipp, fmt)
+        uses: actions/cache@v5
+        with:
+          path: build/_deps
+          key: fetchcontent-coverage-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: |
+            fetchcontent-coverage-
+
+      - name: Configure git identity (needed by tests that create commits)
+        run: |
+          git config --global user.email "ci@github-actions"
+          git config --global user.name  "GitHub Actions"
+          git config --global init.defaultBranch master
+
+      - name: Build with coverage
+        env:
+          CC:  clang
+          CXX: clang++
+          CI:  "1"
+          COVERAGE: "1"
+        run: make TYPE=Debug test
+
+      - name: Collect coverage data
+        run: |
+          gcovr --sonarqube coverage.xml \
+            --gcov-executable 'llvm-cov gcov' \
+            --gcov-ignore-errors=no_working_dir_found \
+            --exclude 'build/_deps/' \
+            --exclude 'test/' \
+            --root .
+
+      - name: Install codecov dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: apt-get update && apt-get install -y curl gpg
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage.xml
+          flags: unittests
+          name: debian-stable-clang-debug

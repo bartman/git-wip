@@ -8,6 +8,7 @@
 
 #include <cstdlib>
 #include <iostream>
+#include "git_wip_version.h"
 #include "print_compat.hpp"
 #include <format>
 #include <map>
@@ -19,7 +20,7 @@ bool g_wip_debug = false;
 
 void print_main_help(const std::vector<std::unique_ptr<Command>>& commands, std::ostream &os = std::cout) {
     std::println(os, "Manage Work In Progress\n");
-    std::println(os, "git-wip <command> [ --help | command options ]\n");
+    std::println(os, "git-wip <command> [ --help | --version | command options ]\n");
     for (const auto& cmd : commands) {
         std::println("    git-wip {:20} # {}", cmd->name(), cmd->desc());
     }
@@ -66,6 +67,11 @@ int main(int argc, char *argv[]) {
 
     if (command_name == "help" || command_name == "--help" || command_name == "-h") {
         print_main_help(commands);
+        return 0;
+    }
+
+    if (command_name == "version" || command_name == "--version" || command_name == "-v") {
+        std::cout << GIT_WIP_VERSION << std::endl;
         return 0;
     }
 
