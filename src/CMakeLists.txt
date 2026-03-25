@@ -1,3 +1,7 @@
+# Generate version header
+include(${CMAKE_SOURCE_DIR}/cmake/GitVersion.cmake)
+gitversion_generate(PREFIX GIT_WIP_ OUTPUT ${CMAKE_BINARY_DIR}/git_wip_version.h)
+
 add_executable(git-wip
     color.cpp
     main.cpp
@@ -8,11 +12,15 @@ add_executable(git-wip
     cmd_status.cpp
 )
 
+# Ensure the executable is rebuilt when the version header changes
+add_dependencies(git-wip gitversion)
+
 install(TARGETS git-wip
     RUNTIME DESTINATION bin
 )
 
 target_include_directories(git-wip PRIVATE
+    ${CMAKE_BINARY_DIR}
     ${LIBGIT2_INCLUDE_DIRS}
 )
 

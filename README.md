@@ -78,6 +78,15 @@ Old WIP commits are never deleted; they remain reachable through
 Snapshot the working tree with the default message `"WIP"`.
 Equivalent to `git wip save "WIP"`.
 
+### `git wip [--version | -v | version]`
+
+Show the version string (from `git describe --tags --dirty=-dirty` at build time).
+
+```
+$ git wip --version
+v0.2-83-g95a6648-dirty
+```
+
 ### `git wip save [<message>] [options] [-- <file>...]`
 
 Create a new WIP commit.
