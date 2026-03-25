@@ -206,7 +206,9 @@ jobs:
       - name: Install dependencies
         env:
           DEBIAN_FRONTEND: noninteractive
-        run: bash dependencies.sh --compiler=gcc
+        run: |
+          bash dependencies.sh --compiler=gcc
+          apt install -y curl gpg
 
       - name: Cache CMake FetchContent (spdlog, clipp, fmt)
         uses: actions/cache@v5
