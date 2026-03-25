@@ -73,13 +73,15 @@ coverage: ## check code coverage (with lcov), uses REBUILD={true,false})
 	${Q}${CMAKE} --build "${BUILD}" --config "${TYPE}" --parallel "${NPROC}"
 	${Q}cd "${BUILD}"/ && ctest -C "${TYPE}" -VV
 	${Q}printf '#!/bin/sh\nexec $(GCOV_TOOL) "$$@"\n' > "${BUILD}/gcov-tool.sh" && chmod +x "${BUILD}/gcov-tool.sh"
-	${Q}lcov --capture --directory "${BUILD}" --gcov-tool "${BUILD}/gcov-tool.sh" \
+	${Q}lcov --capture --directory "${BUILD}/src" \
+		             --directory "${BUILD}/test" \
+		--gcov-tool "${BUILD}/gcov-tool.sh" \
 		--ignore-errors inconsistent \
 		--ignore-errors inconsistent \
 		--ignore-errors format \
 		--ignore-errors unsupported \
 		--output-file coverage.info
-	${Q}lcov --remove coverage.info '/usr/*' '*/${BUILD}/_deps/*' '*/test/*' \
+	${Q}lcov --remove coverage.info '/usr/*' '*/test/*' \
 		--ignore-errors inconsistent \
 		--ignore-errors inconsistent \
 		--ignore-errors format \

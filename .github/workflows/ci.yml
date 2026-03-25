@@ -222,22 +222,12 @@ jobs:
           git config --global user.name  "GitHub Actions"
           git config --global init.defaultBranch master
 
-      - name: Build with coverage
+      - name: Build, test, and collect coverage
         env:
           CC:  gcc
           CXX: g++
           CI:  "1"
-          COVERAGE: "1"
-        run: make TYPE=Debug test
-
-      - name: Collect coverage data
-        run: |
-          lcov --capture --directory build \
-               --gcov-tool gcov \
-               --output-file coverage.info
-          lcov --remove coverage.info \
-               '/usr/*' '*/build/_deps/*' '*/test/*' \
-               --output-file coverage.info
+        run: make CC=gcc CXX=g++ TYPE=Debug coverage REBUILD=1
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v5
