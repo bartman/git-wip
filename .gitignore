@@ -6,6 +6,7 @@ build/
 
 coverage-report/
 coverage.xml
+coverage.info
 
 ### C++
 # Prerequisites

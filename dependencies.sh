@@ -113,6 +113,7 @@ function want_one_of() {
 # ---------------------------------------------------------------------------
 
 compiler=""   # empty → auto-select via must_have_one_of
+coverage=0    # --coverage → install lcov, curl, gpg
 
 for arg in "$@" ; do
     case "$arg" in
@@ -122,9 +123,11 @@ for arg in "$@" ; do
         --compiler=clang) compiler=clang ;;
         --compiler=*)
             die "unknown --compiler value '${arg#--compiler=}' (expected gcc or clang)" ;;
+        --coverage)
+            coverage=1 ;;
         -h|--help)
             cat <<'EOF'
-Usage: dependencies.sh [--compiler=<gcc|clang>] [-h|--help]
+Usage: dependencies.sh [--compiler=<gcc|clang>] [--coverage] [-h|--help]
 
 Install build dependencies for git-wip.
 
@@ -132,6 +135,8 @@ Options:
   --compiler=gcc    Install gcc and g++
   --compiler=clang  Install clang
   (no flag)         Install whichever of clang/gcc is available (auto-select)
+
+  --coverage        Also install coverage tools (lcov, curl, gpg)
 
   -h, --help        Show this help and exit
 EOF
@@ -205,7 +210,6 @@ case "$pkg_mgr" in
             libgmock-dev
             libgtest-dev
             libgit2-dev
-            gcovr
         )
         ;;
     dnf)
@@ -213,14 +217,12 @@ case "$pkg_mgr" in
             gtest-devel
             gmock-devel
             libgit2-devel
-            gcovr
         )
         ;;
     pacman)
         # Arch uses different package names
         packages+=(
             libgit2
-            gcovr
         )
         # Replace base packages with Arch equivalents
         packages=( "${packages[@]/ninja-build/ninja}" )
@@ -232,6 +234,21 @@ case "$pkg_mgr" in
         fi
         ;;
 esac
+
+# Coverage tools (only when --coverage is requested)
+if [ "$coverage" = 1 ]; then
+    case "$pkg_mgr" in
+        apt)
+            packages+=( lcov curl gpg )
+            ;;
+        dnf)
+            packages+=( lcov curl gnupg2 )
+            ;;
+        pacman)
+            packages+=( lcov curl gnupg )
+            ;;
+    esac
+fi
 
 set -e -x
 

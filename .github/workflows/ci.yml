@@ -192,7 +192,7 @@ jobs:
           retention-days: 7
 
   coverage:
-    name: Coverage (debian:stable / clang / Debug)
+    name: Coverage (debian:stable / gcc / Debug)
 
     runs-on: ubuntu-latest
 
@@ -206,7 +206,7 @@ jobs:
       - name: Install dependencies
         env:
           DEBIAN_FRONTEND: noninteractive
-        run: bash dependencies.sh --compiler=clang
+        run: bash dependencies.sh --compiler=gcc --coverage
 
       - name: Cache CMake FetchContent (spdlog, clipp, fmt)
         uses: actions/cache@v5
@@ -222,39 +222,19 @@ jobs:
           git config --global user.name  "GitHub Actions"
           git config --global init.defaultBranch master
 
-      - name: Build with coverage
+      - name: Build, test, and collect coverage
         env:
-          CC:  clang
-          CXX: clang++
+          CC:  gcc
+          CXX: g++
           CI:  "1"
-          COVERAGE: "1"
-        run: make TYPE=Debug test
-
-      - name: Collect coverage data
-        run: |
-          gcovr --cobertura coverage.xml \
-            --gcov-executable 'llvm-cov gcov' \
-            --gcov-ignore-errors=no_working_dir_found \
-            --exclude 'build/_deps/' \
-            --exclude 'test/' \
-            --root "$GITHUB_WORKSPACE"
-
-      - name: Verify coverage file
-        run: |
-          ls -la coverage.xml
-          head -50 coverage.xml
-
-      - name: Install codecov dependencies
-        env:
-          DEBIAN_FRONTEND: noninteractive
-        run: apt-get update && apt-get install -y curl gpg
+        run: make CC=gcc CXX=g++ TYPE=Debug coverage REBUILD=1
 
       - name: Upload to Codecov
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: ./coverage.xml
+          files: ./coverage.info
           flags: unittests
-          name: debian-stable-clang-debug
+          name: debian-stable-gcc-debug
           verbose: true
           fail_ci_if_error: true
