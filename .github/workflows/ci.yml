@@ -249,6 +249,15 @@ jobs:
           DEBIAN_FRONTEND: noninteractive
         run: apt-get update && apt-get install -y curl gpg
 
+      # codecov-action@v5 sets safe.directory using ${{github.workspace}} which
+      # resolves to /home/runner/work/… *outside* the container.  Inside the
+      # container the repo is mounted at $GITHUB_WORKSPACE (/__w/…).  The
+      # mismatch causes git rev-parse to fail with "dubious ownership", the
+      # uploader gets an empty file network, and Codecov records a red-X commit.
+      # Fix: register the real in-container path before the action runs.
+      - name: Fix git safe.directory for container
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Upload to Codecov
         uses: codecov/codecov-action@v5
         with:
