@@ -8,12 +8,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Enable generation of compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Code coverage options
 option(WIP_COVERAGE "Enable code coverage instrumentation" OFF)
-if(WIP_COVERAGE)
-    add_compile_options(-fprofile-arcs -ftest-coverage)
-    add_link_options(-fprofile-arcs -ftest-coverage)
-endif()
 
 include(FetchContent)
 include(CheckCXXSourceCompiles)
@@ -25,6 +20,15 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(spdlog)
+
+# Code coverage options — applied AFTER FetchContent so that third-party
+# dependencies (spdlog, fmt, …) are NOT instrumented.  Mixing gcov versions
+# between the host compiler and a pre-built dep causes "version mismatch"
+# errors at runtime that pollute test output.
+if(WIP_COVERAGE)
+    add_compile_options(-fprofile-arcs -ftest-coverage)
+    add_link_options(-fprofile-arcs -ftest-coverage)
+endif()
 
 # Detect whether the compiler's standard library ships <print> (C++23 P2093).
 # GCC < 14 and some older clangs lack it even with -std=c++23.
