@@ -1,5 +1,7 @@
 # About
 
+[![CI](https://github.com/bartman/git-wip/actions/workflows/ci.yml/badge.svg)](https://github.com/bartman/git-wip/actions)
+
 `git-wip` manages **Work In Progress** (or **WIP**) branches.
 WIP branches are mostly throw-away but capture points of development
 between commits.  The intent is to tie `git-wip` into your editor so
