@@ -67,11 +67,11 @@ test: ## run unit tests (with ctest, uses REBUILD={true,false}, COVERAGE={true,f
 	${Q}cd "${BUILD}"/ && ctest -C "${TYPE}" $(if ${CI},--output-on-failure -VV)
 	${Q}echo " ✅ Unit tests complete."
 
-coverage: ## check code coverage (with lcov), uses REBUILD={true,false})
+coverage: ## check code coverage (with lcov, uses REBUILD={true,false})
 	${Q}$(if $(filter 1 yes true YES TRUE,${REBUILD}),rm -rf "${BUILD}"/)
 	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}" -DWIP_COVERAGE=ON -DCMAKE_C_COMPILER="${CC}" -DCMAKE_CXX_COMPILER="${CXX}"
 	${Q}${CMAKE} --build "${BUILD}" --config "${TYPE}" --parallel "${NPROC}"
-	${Q}cd "${BUILD}"/ && ctest -C "${TYPE}" -VV
+	${Q}cd "${BUILD}"/ && ctest -C "${TYPE}" $(if ${CI},--output-on-failure -VV)
 	${Q}printf '#!/bin/sh\nexec $(GCOV_TOOL) "$$@"\n' > "${BUILD}/gcov-tool.sh" && chmod +x "${BUILD}/gcov-tool.sh"
 	${Q}lcov --capture --directory "${BUILD}/src" \
 		             --directory "${BUILD}/test" \
