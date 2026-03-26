@@ -349,6 +349,19 @@ $ git diff --cached
 
 Adjust with `git reset` / `git add -p` as needed, then commit.
 
-# related
+# Appendix 
 
-- [wip.rs](https://github.com/dlight/wip.rs) is a Rust executable that watches for changes in your work, and invokes `git-wip` as needed. (by [dlight](https://github.com/dlight)).
+## related projects
+
+- [wip.rs](https://github.com/dlight/wip.rs) is a Rust executable that watches for changes in your work, and invokes `git-wip` as needed.
+  (by [dlight](https://github.com/dlight)).
+
+## star history
+
+<a href="https://www.star-history.com/?repos=bartman%2Fgit-wip&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/image?repos=bartman/git-wip&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/image?repos=bartman/git-wip&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/image?repos=bartman/git-wip&type=date&legend=top-left" />
+ </picture>
+</a>
