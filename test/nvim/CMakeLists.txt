@@ -17,7 +17,7 @@ find_program(NVIM_EXECUTABLE nvim)
 if(NVIM_EXECUTABLE)
     message(STATUS "Found nvim: ${NVIM_EXECUTABLE}")
 
-    foreach(TEST_NAME IN ITEMS test_nvim_single test_nvim_buffers test_nvim_windows)
+    foreach(TEST_NAME IN ITEMS test_nvim_single test_nvim_buffers test_nvim_windows test_nvim_background)
         add_test(
             NAME    "nvim/${TEST_NAME}"
             COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/${TEST_NAME}.sh"
