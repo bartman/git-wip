@@ -195,6 +195,7 @@ jobs:
       - name: Compute artifact name
         if: failure()
         id: artifact-name
+        shell: bash
         run: |
           # Colons and slashes are not allowed in artifact names; replace with dashes.
           raw="test-artifacts-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}"

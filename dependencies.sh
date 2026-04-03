@@ -260,6 +260,9 @@ fi
 # Most static .a files come from the -dev packages already installed above.
 # The extras needed on Debian/Ubuntu:
 #   libllhttp-dev    → libllhttp.a   (libgit2 HTTP parser)
+#                      Debian ships this separately; Ubuntu 24.04 embeds llhttp
+#                      inside libgit2 so the package doesn't exist there — use
+#                      want_one_of so it is silently skipped when unavailable.
 #   libgpg-error-dev → libgpg-error.a (libssh2 transitive dep)
 #   libzstd-dev      → libzstd.a     (libssh2 transitive dep)
 #   libkrb5-dev      → provides libgssapi_krb5.so stubs for the dynamic link
@@ -268,8 +271,10 @@ fi
 if [ "$static" = 1 ]; then
     case "$pkg_mgr" in
         apt)
+            # libllhttp-dev is optional — present on Debian, absent on Ubuntu 24.04
+            llhttp_pkg=$(want_one_of libllhttp-dev)
             packages+=(
-                libllhttp-dev
+                ${llhttp_pkg:+$llhttp_pkg}
                 libgpg-error-dev
                 libzstd-dev
                 libkrb5-dev
@@ -277,7 +282,8 @@ if [ "$static" = 1 ]; then
             ;;
         dnf)
             # libgit2-devel ships .a on Fedora; llhttp is embedded in libgit2
-            packages+=( libzstd-devel libkrb5-devel )
+            # krb5-devel is the correct Fedora package name (no lib- prefix)
+            packages+=( libzstd-devel krb5-devel )
             ;;
         pacman)
             # libgit2 on Arch ships .a; llhttp is embedded in libgit2
