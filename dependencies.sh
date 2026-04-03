@@ -259,35 +259,30 @@ fi
 # Static-build extra libs (only when --static is requested)
 # Most static .a files come from the -dev packages already installed above.
 # The extras needed on Debian/Ubuntu:
-#   libllhttp-dev    → libllhttp.a   (libgit2 HTTP parser)
-#                      Debian ships this separately; Ubuntu 24.04 embeds llhttp
-#                      inside libgit2 so the package doesn't exist there — use
-#                      want_one_of so it is silently skipped when unavailable.
 #   libgpg-error-dev → libgpg-error.a (libssh2 transitive dep)
 #   libzstd-dev      → libzstd.a     (libssh2 transitive dep)
 #   libkrb5-dev      → provides libgssapi_krb5.so stubs for the dynamic link
-# On Fedora/Arch the libgit2-devel / libgit2 packages already bundle .a files
-# and llhttp is statically embedded in libgit2, so fewer extras are needed.
+#   libllhttp-dev    → libllhttp.a   (libgit2 HTTP parser)
+#                      Present on Debian stable; Ubuntu 24.04 (noble) embeds
+#                      llhttp statically inside libgit2.a so the package does
+#                      not exist there — detected and skipped automatically.
+# Fedora and Arch do not ship libgit2.a / libssh2.a / libssl.a, so the static
+# build is not supported on those distros; nothing extra to install.
 if [ "$static" = 1 ]; then
     case "$pkg_mgr" in
         apt)
-            # libllhttp-dev is optional — present on Debian, absent on Ubuntu 24.04
+            packages+=( libgpg-error-dev libzstd-dev libkrb5-dev )
+            # libllhttp-dev is optional — present on Debian stable, absent on
+            # Ubuntu 24.04 (noble embeds llhttp statically inside libgit2.a)
             llhttp_pkg=$(want_one_of libllhttp-dev)
-            packages+=(
-                ${llhttp_pkg:+$llhttp_pkg}
-                libgpg-error-dev
-                libzstd-dev
-                libkrb5-dev
-            )
+            [ -n "$llhttp_pkg" ] && packages+=( "$llhttp_pkg" )
             ;;
         dnf)
-            # libgit2-devel ships .a on Fedora; llhttp is embedded in libgit2
-            # krb5-devel is the correct Fedora package name (no lib- prefix)
-            packages+=( libzstd-devel krb5-devel )
+            # Fedora does not ship libgit2.a / libssh2.a / libssl.a, so a
+            # fully static build is not supported there.  Nothing to install.
             ;;
         pacman)
-            # libgit2 on Arch ships .a; llhttp is embedded in libgit2
-            packages+=( zstd krb5 )
+            # Arch does not ship libgit2.a either; nothing to install.
             ;;
     esac
 fi
