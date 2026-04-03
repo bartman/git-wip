@@ -18,6 +18,10 @@ _RUN "$GIT_WIP" -h 2>/dev/null
 
 EXP_grep "."
 
+_RUN "$GIT_WIP" --version 2>/dev/null
+
+EXP_grep "."
+
 # Test per-command help
 
 for cmd in save status log delete ; do
