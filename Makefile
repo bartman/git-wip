@@ -49,7 +49,7 @@ STATIC_FLAG = $(if $(filter 1 yes true YES TRUE,${STATIC}),-DWIP_STATIC=ON,)
 
 GIT_WIP      = ${BUILD}/src/git-wip
 
-all: ## [default] build the project (uses TYPE={Release,Debug}, COVERAGE={true,false}, STATIC={0,1})
+all: ## [default] build the project (uses TYPE={Release,Debug}, COVERAGE={0,1}, STATIC={0,1})
 	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}" ${COVERAGE_FLAG} ${STATIC_FLAG}
 	${Q}${CMAKE} --build "${BUILD}" --config "${TYPE}" --parallel "${NPROC}"
 	${Q}ln -fs "${BUILD}"/compile_commands.json compile_commands.json
@@ -64,14 +64,14 @@ distclean: ## remove build directory completely
 help:
 	${Q}python3 -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
-test: ## run unit tests (with ctest, uses REBUILD={true,false}, COVERAGE={true,false}, STATIC={0,1})
+test: ## run unit tests (with ctest, uses REBUILD={0,1}, COVERAGE={0,1}, STATIC={0,1})
 	${Q}$(if $(filter 1 yes true YES TRUE,${REBUILD}),rm -rf "${BUILD}"/)
 	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}" ${COVERAGE_FLAG} ${STATIC_FLAG}
 	${Q}${CMAKE} --build "${BUILD}" --config "${TYPE}" --parallel "${NPROC}"
 	${Q}cd "${BUILD}"/ && ctest -C "${TYPE}" $(if ${CI},--output-on-failure -VV)
 	${Q}echo " ✅ Unit tests complete."
 
-coverage: ## check code coverage (with lcov, uses REBUILD={true,false})
+coverage: ## check code coverage (with lcov, uses REBUILD={0,1})
 	${Q}$(if $(filter 1 yes true YES TRUE,${REBUILD}),rm -rf "${BUILD}"/)
 	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}" -DWIP_COVERAGE=ON -DCMAKE_C_COMPILER="${CC}" -DCMAKE_CXX_COMPILER="${CXX}"
 	${Q}${CMAKE} --build "${BUILD}" --config "${TYPE}" --parallel "${NPROC}"
@@ -101,13 +101,13 @@ coverage: ## check code coverage (with lcov, uses REBUILD={true,false})
 		--ignore-errors category
 	${Q}echo " ✅ Coverage report generated in coverage-report/"
 
-install: ## install the package (to the `PREFIX`, uses REBUILD={true,false}, STATIC={0,1})
+install: ## install the package (to the `PREFIX`, uses REBUILD={0,1}, STATIC={0,1})
 	${Q}$(if $(filter 1 yes true YES TRUE,${REBUILD}),rm -rf "${BUILD}"/)
 	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}" ${STATIC_FLAG}
 	${Q}${CMAKE} --build "${BUILD}" --config "${TYPE}" --parallel "${NPROC}"
 	${Q}${CMAKE} --build "${BUILD}" --target install --config "${TYPE}"
 
-format: ## format the project sources (uses REBUILD={true,false})
+format: ## format the project sources (uses REBUILD={0,1})
 	${Q}$(if $(filter 1 yes true YES TRUE,${REBUILD}),rm -rf "${BUILD}"/)
 	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}" ${STATIC_FLAG}
 	${Q}${CMAKE} --build "${BUILD}" --target clang-format
