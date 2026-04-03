@@ -109,6 +109,7 @@ require("git-wip").setup({
     git_wip_path = git_wip_path,
     untracked = false,
     ignored = false,
+    background = os.getenv("GIT_WIP_TEST_BACKGROUND") == "true",
     filetypes = { "*" },
 })
 INITLUA
@@ -118,6 +119,7 @@ INITLUA
 
     # Run nvim with a watchdog timeout (10 seconds max)
     # This prevents tests from hanging indefinitely
+    GIT_WIP_TEST_BACKGROUND="${GIT_WIP_TEST_BACKGROUND:-false}" \
     GIT_WIP="$GIT_WIP" \
     REPO_ROOT="$REPO_ROOT" \
     timeout 10 "$NVIM" --headless -u "$REPO/init.lua" "${nvim_args[@]}" -c "quit!" >"$NVIM_OUT" 2>&1

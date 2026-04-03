@@ -263,10 +263,11 @@ $ git wip -h
 {
     "bartman/git-wip",
     opts = {
-        gpg_sign = false,
-        untracked = true,
-        ignored = false,
-        filetypes = { "*" },
+        gpg_sign = false,    -- true enables GPG signing of commits
+        untracked = true,    -- true to include untracked files
+        ignored = false,     -- true to include files ignored by .gitignore
+        background = false,  -- true for async execution if supported (Neovim 0.10+), false for sync
+        filetypes = { "*" }, -- list of vim file types to call git-wip on
     },
 },
 ```
@@ -349,7 +350,7 @@ $ git diff --cached
 
 Adjust with `git reset` / `git add -p` as needed, then commit.
 
-# Appendix 
+# Appendix
 
 ## related projects
 

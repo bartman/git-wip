@@ -13,6 +13,19 @@
 - `lua/git-wip/init.lua` is the plugin for Neovim written in Lua
 - `vim/plugin/git-wip.vim` is the legacy plugin for Vim written in VimL -- maintained, but not actively improved
 
+## Lua Plugin Configuration
+
+The Neovim Lua plugin supports the following configuration options (set via `opts` in lazy.nvim or passed to `setup()`):
+
+- `git_wip_path`: Path to the git-wip binary (default: "git-wip")
+- `gpg_sign`: nil (default), true (--gpg-sign), false (--no-gpg-sign)
+- `untracked`: nil (default), true (--untracked), false (--no-untracked)
+- `ignored`: nil (default), true (--ignored), false (--no-ignored)
+- `background`: false (default, sync execution), true (async if Neovim 0.10+, else sync with warning)
+- `filetypes`: Array of filetypes to enable (default: { "*" } for all)
+
+Async execution uses Neovim's `vim.system` with `on_exit` callback for non-blocking saves.
+
 ## Test Infrastructure
 
 ### test/cli/lib.sh
