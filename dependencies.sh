@@ -58,13 +58,15 @@ function must_have_one_of() {
     for n in "${pkg_names[@]}" ; do
         case "$pkg_mgr" in
             apt)
-                if apt policy "$n" >/dev/null 2>&1 ; then
+                # apt-cache show exits non-zero when the package is unknown;
+                # apt policy always exits 0 so it cannot be used for existence checks.
+                if apt-cache show "$n" >/dev/null 2>&1 ; then
                     echo "$n"
                     return
                 fi
                 ;;
             dnf)
-                if dnf list installed "$n" >/dev/null 2>&1 ; then
+                if dnf list available "$n" >/dev/null 2>&1 ; then
                     echo "$n"
                     return
                 fi
@@ -86,13 +88,15 @@ function want_one_of() {
     for n in "${pkg_names[@]}" ; do
         case "$pkg_mgr" in
             apt)
-                if apt policy "$n" >/dev/null 2>&1 ; then
+                # apt-cache show exits non-zero when the package is unknown;
+                # apt policy always exits 0 so it cannot be used for existence checks.
+                if apt-cache show "$n" >/dev/null 2>&1 ; then
                     echo "$n"
                     return
                 fi
                 ;;
             dnf)
-                if dnf list installed "$n" >/dev/null 2>&1 ; then
+                if dnf list available "$n" >/dev/null 2>&1 ; then
                     echo "$n"
                     return
                 fi
