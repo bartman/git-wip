@@ -147,7 +147,7 @@ jobs:
       - name: Cache CMake FetchContent (spdlog, clipp, fmt)
         uses: actions/cache@v5
         with:
-          path: build/_deps
+          path: build-so/_deps
           key: fetchcontent-${{ matrix.os }}-${{ matrix.compiler }}-${{ hashFiles('CMakeLists.txt') }}
           restore-keys: |
             fetchcontent-${{ matrix.os }}-${{ matrix.compiler }}-
@@ -159,19 +159,38 @@ jobs:
           git config --global user.name  "GitHub Actions"
           git config --global init.defaultBranch master
 
-      - name: Build
+      - name: Build dynamic
         env:
           CC:  ${{ matrix.cc }}
           CXX: ${{ matrix.cxx }}
           CI:  "1"
-        run: make TYPE=${{ matrix.build_type }}
+        run: make BUILD=build-so TYPE=${{ matrix.build_type }}
 
-      - name: Test
+      - name: Test dynamic
         env:
           CC:  ${{ matrix.cc }}
           CXX: ${{ matrix.cxx }}
           CI:  "1"
-        run: make TYPE=${{ matrix.build_type }} test
+        run: make BUILD=build-so TYPE=${{ matrix.build_type }} test
+
+      - name: Install static dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: bash dependencies.sh --compiler=${{ matrix.compiler }} --static
+
+      - name: Build static
+        env:
+          CC:  ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+          CI:  "1"
+        run: make BUILD=build-a STATIC=1 TYPE=${{ matrix.build_type }}
+
+      - name: Test static
+        env:
+          CC:  ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+          CI:  "1"
+        run: make BUILD=build-a STATIC=1 TYPE=${{ matrix.build_type }} test
 
       - name: Compute artifact name
         if: failure()
@@ -187,8 +206,10 @@ jobs:
         with:
           name: ${{ steps.artifact-name.outputs.name }}
           path: |
-            build/test/
-            build/Testing/
+            build-so/test/
+            build-so/Testing/
+            build-a/test/
+            build-a/Testing/
           retention-days: 7
 
   coverage:
