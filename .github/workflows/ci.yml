@@ -15,12 +15,14 @@ jobs:
       matrix:
         include:
           # ── Debian stable ──────────────────────────────────────────────────
+          # static: true — libgit2-dev ships libgit2.a on Debian
           - os: debian:stable
             runner: ubuntu-latest
             compiler: gcc
             cc: gcc
             cxx: g++
             build_type: Release
+            static: true
 
           - os: debian:stable
             runner: ubuntu-latest
@@ -28,6 +30,7 @@ jobs:
             cc: gcc
             cxx: g++
             build_type: Debug
+            static: true
 
           - os: debian:stable
             runner: ubuntu-latest
@@ -35,6 +38,7 @@ jobs:
             cc: clang
             cxx: clang++
             build_type: Release
+            static: true
 
           - os: debian:stable
             runner: ubuntu-latest
@@ -42,14 +46,17 @@ jobs:
             cc: clang
             cxx: clang++
             build_type: Debug
+            static: true
 
           # ── Ubuntu LTS (24.04) ─────────────────────────────────────────────
+          # static: true — libgit2-dev ships libgit2.a on Ubuntu
           - os: ubuntu:24.04
             runner: ubuntu-latest
             compiler: gcc
             cc: gcc
             cxx: g++
             build_type: Release
+            static: true
 
           - os: ubuntu:24.04
             runner: ubuntu-latest
@@ -57,6 +64,7 @@ jobs:
             cc: gcc
             cxx: g++
             build_type: Debug
+            static: true
 
           - os: ubuntu:24.04
             runner: ubuntu-latest
@@ -64,6 +72,7 @@ jobs:
             cc: clang
             cxx: clang++
             build_type: Release
+            static: true
 
           - os: ubuntu:24.04
             runner: ubuntu-latest
@@ -71,14 +80,17 @@ jobs:
             cc: clang
             cxx: clang++
             build_type: Debug
+            static: true
 
           # ── Fedora (latest) ───────────────────────────────────────────────────
+          # static: false — Fedora does not ship libgit2.a / libssh2.a / libssl.a
           - os: fedora:latest
             runner: ubuntu-latest
             compiler: gcc
             cc: gcc
             cxx: g++
             build_type: Release
+            static: false
 
           - os: fedora:latest
             runner: ubuntu-latest
@@ -86,6 +98,7 @@ jobs:
             cc: gcc
             cxx: g++
             build_type: Debug
+            static: false
 
           - os: fedora:latest
             runner: ubuntu-latest
@@ -93,6 +106,7 @@ jobs:
             cc: clang
             cxx: clang++
             build_type: Release
+            static: false
 
           - os: fedora:latest
             runner: ubuntu-latest
@@ -100,14 +114,17 @@ jobs:
             cc: clang
             cxx: clang++
             build_type: Debug
+            static: false
 
           # ── Arch Linux (stable) ───────────────────────────────────────────────
+          # static: false — Arch does not ship libgit2.a
           - os: archlinux:latest
             runner: ubuntu-latest
             compiler: gcc
             cc: gcc
             cxx: g++
             build_type: Release
+            static: false
 
           - os: archlinux:latest
             runner: ubuntu-latest
@@ -115,6 +132,7 @@ jobs:
             cc: gcc
             cxx: g++
             build_type: Debug
+            static: false
 
           - os: archlinux:latest
             runner: ubuntu-latest
@@ -122,6 +140,7 @@ jobs:
             cc: clang
             cxx: clang++
             build_type: Release
+            static: false
 
           - os: archlinux:latest
             runner: ubuntu-latest
@@ -129,6 +148,7 @@ jobs:
             cc: clang
             cxx: clang++
             build_type: Debug
+            static: false
 
     runs-on: ${{ matrix.runner }}
 
@@ -147,7 +167,7 @@ jobs:
       - name: Cache CMake FetchContent (spdlog, clipp, fmt)
         uses: actions/cache@v5
         with:
-          path: build/_deps
+          path: build-so/_deps
           key: fetchcontent-${{ matrix.os }}-${{ matrix.compiler }}-${{ hashFiles('CMakeLists.txt') }}
           restore-keys: |
             fetchcontent-${{ matrix.os }}-${{ matrix.compiler }}-
@@ -159,23 +179,46 @@ jobs:
           git config --global user.name  "GitHub Actions"
           git config --global init.defaultBranch master
 
-      - name: Build
+      - name: Build dynamic
         env:
           CC:  ${{ matrix.cc }}
           CXX: ${{ matrix.cxx }}
           CI:  "1"
-        run: make TYPE=${{ matrix.build_type }}
+        run: make BUILD=build-so TYPE=${{ matrix.build_type }}
 
-      - name: Test
+      - name: Test dynamic
         env:
           CC:  ${{ matrix.cc }}
           CXX: ${{ matrix.cxx }}
           CI:  "1"
-        run: make TYPE=${{ matrix.build_type }} test
+        run: make BUILD=build-so TYPE=${{ matrix.build_type }} test
+
+      - name: Install static dependencies
+        if: matrix.static
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: bash dependencies.sh --compiler=${{ matrix.compiler }} --static
+
+      - name: Build static
+        if: matrix.static
+        env:
+          CC:  ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+          CI:  "1"
+        run: make BUILD=build-a STATIC=1 TYPE=${{ matrix.build_type }}
+
+      - name: Test static
+        if: matrix.static
+        env:
+          CC:  ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+          CI:  "1"
+        run: make BUILD=build-a STATIC=1 TYPE=${{ matrix.build_type }} test
 
       - name: Compute artifact name
         if: failure()
         id: artifact-name
+        shell: bash
         run: |
           # Colons and slashes are not allowed in artifact names; replace with dashes.
           raw="test-artifacts-${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.build_type }}"
@@ -187,8 +230,10 @@ jobs:
         with:
           name: ${{ steps.artifact-name.outputs.name }}
           path: |
-            build/test/
-            build/Testing/
+            build-so/test/
+            build-so/Testing/
+            build-a/test/
+            build-a/Testing/
           retention-days: 7
 
   coverage:

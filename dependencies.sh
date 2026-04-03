@@ -58,13 +58,15 @@ function must_have_one_of() {
     for n in "${pkg_names[@]}" ; do
         case "$pkg_mgr" in
             apt)
-                if apt policy "$n" >/dev/null 2>&1 ; then
+                # apt-cache show exits non-zero when the package is unknown;
+                # apt policy always exits 0 so it cannot be used for existence checks.
+                if apt-cache show "$n" >/dev/null 2>&1 ; then
                     echo "$n"
                     return
                 fi
                 ;;
             dnf)
-                if dnf list installed "$n" >/dev/null 2>&1 ; then
+                if dnf list available "$n" >/dev/null 2>&1 ; then
                     echo "$n"
                     return
                 fi
@@ -86,13 +88,15 @@ function want_one_of() {
     for n in "${pkg_names[@]}" ; do
         case "$pkg_mgr" in
             apt)
-                if apt policy "$n" >/dev/null 2>&1 ; then
+                # apt-cache show exits non-zero when the package is unknown;
+                # apt policy always exits 0 so it cannot be used for existence checks.
+                if apt-cache show "$n" >/dev/null 2>&1 ; then
                     echo "$n"
                     return
                 fi
                 ;;
             dnf)
-                if dnf list installed "$n" >/dev/null 2>&1 ; then
+                if dnf list available "$n" >/dev/null 2>&1 ; then
                     echo "$n"
                     return
                 fi
@@ -114,6 +118,7 @@ function want_one_of() {
 
 compiler=""   # empty → auto-select via must_have_one_of
 coverage=0    # --coverage → install lcov, curl, gpg
+static=0      # --static  → install static libs needed for STATIC=1 builds
 
 for arg in "$@" ; do
     case "$arg" in
@@ -125,9 +130,11 @@ for arg in "$@" ; do
             die "unknown --compiler value '${arg#--compiler=}' (expected gcc or clang)" ;;
         --coverage)
             coverage=1 ;;
+        --static)
+            static=1 ;;
         -h|--help)
             cat <<'EOF'
-Usage: dependencies.sh [--compiler=<gcc|clang>] [--coverage] [-h|--help]
+Usage: dependencies.sh [--compiler=<gcc|clang>] [--coverage] [--static] [-h|--help]
 
 Install build dependencies for git-wip.
 
@@ -137,6 +144,9 @@ Options:
   (no flag)         Install whichever of clang/gcc is available (auto-select)
 
   --coverage        Also install coverage tools (lcov, curl, gpg)
+
+  --static          Also install static libraries required for `make STATIC=1`
+                    (libllhttp-dev and any other missing static .a files)
 
   -h, --help        Show this help and exit
 EOF
@@ -246,6 +256,37 @@ if [ "$coverage" = 1 ]; then
             ;;
         pacman)
             packages+=( lcov curl gnupg )
+            ;;
+    esac
+fi
+
+# Static-build extra libs (only when --static is requested)
+# Most static .a files come from the -dev packages already installed above.
+# The extras needed on Debian/Ubuntu:
+#   libgpg-error-dev → libgpg-error.a (libssh2 transitive dep)
+#   libzstd-dev      → libzstd.a     (libssh2 transitive dep)
+#   libkrb5-dev      → provides libgssapi_krb5.so stubs for the dynamic link
+#   libllhttp-dev    → libllhttp.a   (libgit2 HTTP parser)
+#                      Present on Debian stable; Ubuntu 24.04 (noble) embeds
+#                      llhttp statically inside libgit2.a so the package does
+#                      not exist there — detected and skipped automatically.
+# Fedora and Arch do not ship libgit2.a / libssh2.a / libssl.a, so the static
+# build is not supported on those distros; nothing extra to install.
+if [ "$static" = 1 ]; then
+    case "$pkg_mgr" in
+        apt)
+            packages+=( libgpg-error-dev libzstd-dev libkrb5-dev )
+            # libllhttp-dev is optional — present on Debian stable, absent on
+            # Ubuntu 24.04 (noble embeds llhttp statically inside libgit2.a)
+            llhttp_pkg=$(want_one_of libllhttp-dev)
+            [ -n "$llhttp_pkg" ] && packages+=( "$llhttp_pkg" )
+            ;;
+        dnf)
+            # Fedora does not ship libgit2.a / libssh2.a / libssl.a, so a
+            # fully static build is not supported there.  Nothing to install.
+            ;;
+        pacman)
+            # Arch does not ship libgit2.a either; nothing to install.
             ;;
     esac
 fi

@@ -223,6 +223,13 @@ Dependencies (`spdlog`) are fetched automatically by CMake via
 `FetchContent`.  `libgit2` must be installed system-wide (e.g.
 `apt install libgit2-dev`).
 
+If you'd rather build a static binary (tested on Debian/Ubuntu), you can use:
+
+```sh
+$ ./dependencies.sh --static  # install extra dependencies
+$ make STATIC=1               # build the static binary
+```
+
 ---
 
 ## Installation
