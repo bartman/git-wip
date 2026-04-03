@@ -5,6 +5,7 @@ local M = {}
 -- Detect Neovim version for API compatibility
 -- vim.system is available in Neovim 0.10+
 local has_vim_system = vim.system ~= nil
+local has_loop_spawn = vim.loop.spawn ~= nil
 local has_loop_hrtime = vim.loop and vim.loop.hrtime ~= nil
 
 -- Configuration
@@ -63,7 +64,7 @@ local function notify_result(display_name, code, elapsed)
     vim.notify(msg, vim.log.levels.INFO)
   else
     local msg = "[git-wip] failed for " .. display_name .. " (exit " .. code .. ")"
-    if M.config.background and not has_vim_system then
+    if M.config.background and not has_loop_spawn then
       msg = msg .. " (async not supported, ran sync)"
     end
     vim.notify(msg, vim.log.levels.WARN)
@@ -92,17 +93,21 @@ end
 
 ---Helper: Run async
 local function run_async(cmd, dir, display_name)
+  local unpack = table.unpack or unpack -- unpack is deprecated
   local start = get_hrtime()
-  vim.system(cmd, {
+  local handle
+  handle = vim.loop.spawn(cmd[1], {
+    args = {unpack(cmd, 2)},
     cwd = dir,
-    text = true,
-    on_exit = function(result)
-      local elapsed = (get_hrtime() - start) / 1e9
-      vim.schedule(function()
-        notify_result(display_name, result.code, elapsed)
-      end)
-    end
-  })
+    stdio = {nil, nil, nil},
+  }, function(code, signal)
+    local elapsed = has_loop_hrtime and (get_hrtime() - start) / 1e9 or 0
+    notify_result(display_name, code, elapsed)
+    handle:close()
+  end)
+  if not handle then
+    vim.notify("Failed to spawn git-wip process", vim.log.levels.ERROR)
+  end
 end
 
 ---Setup function (automatically called by Lazy.nvim)
@@ -144,7 +149,7 @@ end
 function M.RunGitWip(dir, filename)
   local display_name = filename or '*'
   local cmd = build_command(display_name, filename)
-  if M.config.background and has_vim_system then
+  if M.config.background and has_loop_spawn then
     run_async(cmd, dir, display_name)
   else
     run_sync(cmd, dir, display_name)
