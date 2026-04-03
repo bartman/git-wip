@@ -32,21 +32,25 @@ NPROC ?= $(shell nproc || echo 1)
 CC ?= $(shell which clang gcc cc | head -n1)
 CXX ?= $(shell which clang g++ c++ | head -n1)
 COVERAGE ?= false
+STATIC   ?= 0
 # Locate the right gcov-compatible tool to match the compiler:
 # - if CC is clang, use llvm-cov (prefer plain symlink, fall back to versioned)
 # - otherwise use plain gcov
 # Use = (recursive) not := (immediate) so CC override on the command line is respected.
 _IS_CLANG = $(shell $(CC) --version 2>/dev/null | grep -c clang)
 GCOV_TOOL = $(if $(filter 1,$(_IS_CLANG)),$(shell which llvm-cov 2>/dev/null || ls /usr/bin/llvm-cov-* 2>/dev/null | sort -V | tail -1) gcov,gcov)
-$(info ## TYPE=${TYPE} CC=${CC} CXX=${CXX} COVERAGE=${COVERAGE})
+$(info ## TYPE=${TYPE} CC=${CC} CXX=${CXX} COVERAGE=${COVERAGE} STATIC=${STATIC})
 
 # Coverage flag for CMake
 COVERAGE_FLAG = $(if $(filter 1 yes true YES TRUE,${COVERAGE}),-DWIP_COVERAGE=ON,)
 
+# Static flag for CMake
+STATIC_FLAG = $(if $(filter 1 yes true YES TRUE,${STATIC}),-DWIP_STATIC=ON,)
+
 GIT_WIP      = ${BUILD}/src/git-wip
 
-all: ## [default] build the project (uses TYPE={Release,Debug}, COVERAGE={true,false})
-	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}" ${COVERAGE_FLAG}
+all: ## [default] build the project (uses TYPE={Release,Debug}, COVERAGE={true,false}, STATIC={0,1})
+	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}" ${COVERAGE_FLAG} ${STATIC_FLAG}
 	${Q}${CMAKE} --build "${BUILD}" --config "${TYPE}" --parallel "${NPROC}"
 	${Q}ln -fs "${BUILD}"/compile_commands.json compile_commands.json
 	${Q}ln -fs "${GIT_WIP}" .
@@ -60,9 +64,9 @@ distclean: ## remove build directory completely
 help:
 	${Q}python3 -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
 
-test: ## run unit tests (with ctest, uses REBUILD={true,false}, COVERAGE={true,false})
+test: ## run unit tests (with ctest, uses REBUILD={true,false}, COVERAGE={true,false}, STATIC={0,1})
 	${Q}$(if $(filter 1 yes true YES TRUE,${REBUILD}),rm -rf "${BUILD}"/)
-	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}" ${COVERAGE_FLAG}
+	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}" ${COVERAGE_FLAG} ${STATIC_FLAG}
 	${Q}${CMAKE} --build "${BUILD}" --config "${TYPE}" --parallel "${NPROC}"
 	${Q}cd "${BUILD}"/ && ctest -C "${TYPE}" $(if ${CI},--output-on-failure -VV)
 	${Q}echo " ✅ Unit tests complete."
@@ -97,15 +101,15 @@ coverage: ## check code coverage (with lcov, uses REBUILD={true,false})
 		--ignore-errors category
 	${Q}echo " ✅ Coverage report generated in coverage-report/"
 
-install: ## install the package (to the `PREFIX`, uses REBUILD={true,false})
+install: ## install the package (to the `PREFIX`, uses REBUILD={true,false}, STATIC={0,1})
 	${Q}$(if $(filter 1 yes true YES TRUE,${REBUILD}),rm -rf "${BUILD}"/)
-	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}"
+	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}" ${STATIC_FLAG}
 	${Q}${CMAKE} --build "${BUILD}" --config "${TYPE}" --parallel "${NPROC}"
 	${Q}${CMAKE} --build "${BUILD}" --target install --config "${TYPE}"
 
 format: ## format the project sources (uses REBUILD={true,false})
 	${Q}$(if $(filter 1 yes true YES TRUE,${REBUILD}),rm -rf "${BUILD}"/)
-	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}"
+	${Q}${CMAKE} -G ${GENERATOR} -S. -B${BUILD} -DCMAKE_INSTALL_PREFIX="$(PREFIX)" -DCMAKE_BUILD_TYPE="${TYPE}" ${STATIC_FLAG}
 	${Q}${CMAKE} --build "${BUILD}" --target clang-format
 
 full-test: ## like test, but with a full rebuild

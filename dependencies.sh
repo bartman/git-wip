@@ -114,6 +114,7 @@ function want_one_of() {
 
 compiler=""   # empty → auto-select via must_have_one_of
 coverage=0    # --coverage → install lcov, curl, gpg
+static=0      # --static  → install static libs needed for STATIC=1 builds
 
 for arg in "$@" ; do
     case "$arg" in
@@ -125,9 +126,11 @@ for arg in "$@" ; do
             die "unknown --compiler value '${arg#--compiler=}' (expected gcc or clang)" ;;
         --coverage)
             coverage=1 ;;
+        --static)
+            static=1 ;;
         -h|--help)
             cat <<'EOF'
-Usage: dependencies.sh [--compiler=<gcc|clang>] [--coverage] [-h|--help]
+Usage: dependencies.sh [--compiler=<gcc|clang>] [--coverage] [--static] [-h|--help]
 
 Install build dependencies for git-wip.
 
@@ -137,6 +140,9 @@ Options:
   (no flag)         Install whichever of clang/gcc is available (auto-select)
 
   --coverage        Also install coverage tools (lcov, curl, gpg)
+
+  --static          Also install static libraries required for `make STATIC=1`
+                    (libllhttp-dev and any other missing static .a files)
 
   -h, --help        Show this help and exit
 EOF
@@ -246,6 +252,36 @@ if [ "$coverage" = 1 ]; then
             ;;
         pacman)
             packages+=( lcov curl gnupg )
+            ;;
+    esac
+fi
+
+# Static-build extra libs (only when --static is requested)
+# Most static .a files come from the -dev packages already installed above.
+# The extras needed on Debian/Ubuntu:
+#   libllhttp-dev    → libllhttp.a   (libgit2 HTTP parser)
+#   libgpg-error-dev → libgpg-error.a (libssh2 transitive dep)
+#   libzstd-dev      → libzstd.a     (libssh2 transitive dep)
+#   libkrb5-dev      → provides libgssapi_krb5.so stubs for the dynamic link
+# On Fedora/Arch the libgit2-devel / libgit2 packages already bundle .a files
+# and llhttp is statically embedded in libgit2, so fewer extras are needed.
+if [ "$static" = 1 ]; then
+    case "$pkg_mgr" in
+        apt)
+            packages+=(
+                libllhttp-dev
+                libgpg-error-dev
+                libzstd-dev
+                libkrb5-dev
+            )
+            ;;
+        dnf)
+            # libgit2-devel ships .a on Fedora; llhttp is embedded in libgit2
+            packages+=( libzstd-devel libkrb5-devel )
+            ;;
+        pacman)
+            # libgit2 on Arch ships .a; llhttp is embedded in libgit2
+            packages+=( zstd krb5 )
             ;;
     esac
 fi

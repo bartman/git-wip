@@ -9,6 +9,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 option(WIP_COVERAGE "Enable code coverage instrumentation" OFF)
+option(WIP_STATIC  "Build a fully static binary"           OFF)
 
 include(FetchContent)
 include(CheckCXXSourceCompiles)
@@ -51,7 +52,47 @@ endif()
 
 include(FindPkgConfig)
 
-pkg_check_modules(LIBGIT2 REQUIRED libgit2)
+if(WIP_STATIC)
+    message(STATUS "WIP_STATIC=ON — building a mostly-static binary (libgit2 and all its deps statically linked; glibc stays shared)")
+    pkg_check_modules(LIBGIT2 REQUIRED libgit2)
+
+    # Collect the full transitive static link flags from pkg-config.
+    # We split them into two groups so CMake can handle each token cleanly:
+    #   LIBGIT2_STATIC_LIBS  — -lfoo tokens (library names, no -L prefix)
+    #   LIBGIT2_STATIC_DIRS  — -L/path tokens (search paths)
+    execute_process(
+        COMMAND pkg-config --static --libs libgit2
+        OUTPUT_VARIABLE _git2_raw
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    execute_process(
+        COMMAND pkg-config --static --libs-only-l libgit2
+        OUTPUT_VARIABLE _git2_libs_raw
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    execute_process(
+        COMMAND pkg-config --static --libs-only-L libgit2
+        OUTPUT_VARIABLE _git2_dirs_raw
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    # Also pull in the transitive deps of libssh2 (uses OpenSSL on Debian)
+    execute_process(
+        COMMAND pkg-config --static --libs-only-l libssh2
+        OUTPUT_VARIABLE _ssh2_libs_raw
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
+    string(REPLACE "-l" "" _git2_libs_stripped "${_git2_libs_raw}")
+    string(REPLACE "-L" "" _git2_dirs_stripped "${_git2_dirs_raw}")
+    string(REPLACE "-l" "" _ssh2_libs_stripped "${_ssh2_libs_raw}")
+    separate_arguments(LIBGIT2_STATIC_LIBS UNIX_COMMAND "${_git2_libs_stripped}")
+    separate_arguments(LIBGIT2_STATIC_DIRS UNIX_COMMAND "${_git2_dirs_stripped}")
+    separate_arguments(SSH2_STATIC_LIBS    UNIX_COMMAND "${_ssh2_libs_stripped}")
+    # Deduplicate (SSH2 libs are a subset)
+    list(APPEND LIBGIT2_STATIC_LIBS ${SSH2_STATIC_LIBS})
+    list(REMOVE_DUPLICATES LIBGIT2_STATIC_LIBS)
+else()
+    pkg_check_modules(LIBGIT2 REQUIRED libgit2)
+endif()
 
 # Optional: GTest/GMock for unit tests (only available on some distros)
 find_package(GTest QUIET)
