@@ -127,4 +127,63 @@ EXP_grep "branch master has 1 wip commit on refs/wip/master"
 EXP_grep "post-commit-a"
 EXP_grep -v "save-a-only"
 
+# cleanup
+RUN rm -f "file_a"
+
+# -------------------------------------------------------------------------
+# -u/--untracked captures untracked files
+
+RUN "echo untracked_u >file_untracked_u"
+RUN "$GIT_WIP" save -u "\"save-untracked-u\"" -- file_untracked_u
+RUN git show wip/master:file_untracked_u
+EXP_grep "^untracked_u$"
+
+# -------------------------------------------------------------------------
+# -i/--ignored captures ignored files (create .gitignore entry first)
+
+RUN "echo ignored_i >file_ignored_i"
+RUN "echo file_ignored_i >.gitignore"
+RUN git add .gitignore
+RUN git commit -m "\"add gitignore\""
+RUN "$GIT_WIP" save -i "\"save-ignored-i\"" -- file_ignored_i
+RUN git show wip/master:file_ignored_i
+EXP_grep "^ignored_i$"
+
+# -------------------------------------------------------------------------
+# -a/--all captures both untracked and ignored
+
+RUN "echo untracked_a >file_untracked_a"
+RUN "echo ignored_a >file_ignored_a"
+RUN "echo file_ignored_a >>.gitignore"
+RUN git add .gitignore
+RUN git commit -m "\"update gitignore\""
+RUN "$GIT_WIP" save -a "\"save-all-a\"" -- file_untracked_a file_ignored_a
+RUN git show wip/master:file_untracked_a
+EXP_grep "^untracked_a$"
+RUN git show wip/master:file_ignored_a
+EXP_grep "^ignored_a$"
+
+# -------------------------------------------------------------------------
+# --no-untracked / -U excludes untracked files (no explicit files given)
+# first remove any leftover untracked files so only the new one exists
+
+RUN rm -f file_untracked_u file_untracked_a
+_RUN "$GIT_WIP" save "\"before-no-untracked\""
+RUN "echo untracked_neg >file_untracked_neg"
+_RUN "$GIT_WIP" save -U "\"save-no-untracked\""
+EXP_text "no changes"
+
+# -------------------------------------------------------------------------
+# --no-ignored / -I excludes ignored files (no explicit files given)
+# ensure no untracked files exist (they would be captured by default)
+
+RUN rm -f file_untracked_neg
+RUN "echo file_ignored_neg >>.gitignore"
+RUN git add .gitignore
+RUN git commit -m "\"update gitignore for neg test"\"
+_RUN "$GIT_WIP" save "\"before-no-ignored\""
+RUN "echo ignored_neg >file_ignored_neg"
+_RUN "$GIT_WIP" save -I "\"save-no-ignored\""
+EXP_text "no changes"
+
 echo "OK: $TEST_NAME"
