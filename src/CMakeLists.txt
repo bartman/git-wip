@@ -1,6 +1,16 @@
 # Generate version header
-include(${CMAKE_SOURCE_DIR}/cmake/GitVersion.cmake)
-gitversion_generate(PREFIX GIT_WIP_ OUTPUT ${CMAKE_BINARY_DIR}/git_wip_version.h)
+set(VERSION_HEADER "")
+
+if(DEFINED USE_GIT_WIP_VERSION_H AND EXISTS "${USE_GIT_WIP_VERSION_H}")
+    set(VERSION_HEADER "${USE_GIT_WIP_VERSION_H}")
+    message(STATUS "Using pre-generated version header: ${VERSION_HEADER}")
+else()
+    # Normal development path (local make, dev shell, etc.)
+    message(STATUS "No pre-generated header found → generating with GitVersion.sh")
+    include(${CMAKE_SOURCE_DIR}/cmake/GitVersion.cmake)
+    gitversion_generate(PREFIX GIT_WIP_ OUTPUT ${CMAKE_BINARY_DIR}/git_wip_version.h)
+    set(VERSION_HEADER "${CMAKE_BINARY_DIR}/git_wip_version.h")
+endif()
 
 add_executable(git-wip
     color.cpp
@@ -14,6 +24,9 @@ add_executable(git-wip
 
 # Ensure the executable is rebuilt when the version header changes
 add_dependencies(git-wip gitversion)
+
+# make sure the verison is visible to the compiler
+target_include_directories(git-wip PRIVATE ${CMAKE_BINARY_DIR})
 
 install(TARGETS git-wip
     RUNTIME DESTINATION bin
