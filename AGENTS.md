@@ -4,7 +4,7 @@
 
 - Use c++23 best practices.  Use CamelCase for classes, use snake_case for method names, variable names, etc.  Use #pragma once in headers.  Use m_ prefix for member variables.
 - use manual arg parsing, use spdlog for debug logging (set `WIP_DEBUG=1` to see debug), use libgit2 for git functionality
-- build with `make`, test with `make test`
+- build with `make BUILD=build-agent`, test with `make BUILD=build-agent test` — use `BUILD=build-agent` to isolate agent builds from user's default `build/` directory
 - manage/install dependencies with `dependencies.sh` script
 - unit tests go into `test/unit/test_*.cpp`
 - CLI integration tests go into `test/cli/test_*.sh` — source `test/cli/lib.sh`, must be executable
@@ -229,6 +229,7 @@ test/cli/
   test_status.sh    # status command tests
   test_status2.sh   # status after work-branch advance
   test_save_file.sh # save with explicit file arguments
+  test_log.sh       # log command tests
   CMakeLists.txt    # registers each test_*.sh with ctest
 ```
 

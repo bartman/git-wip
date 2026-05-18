@@ -13,9 +13,10 @@ int LogCmd::run(int argc, char *argv[]) {
     // -----------------------------------------------------------------------
     // 1. Parse arguments
     // -----------------------------------------------------------------------
-    bool pretty     = false;
-    bool stat       = false;
+    bool pretty      = false;
+    bool stat        = false;
     bool reflog_mode = false;
+    size_t limit     = 0;
     std::vector<std::string> files;
 
     std::vector<std::string> args;
@@ -35,13 +36,25 @@ int LogCmd::run(int argc, char *argv[]) {
         } else if (a == "--reflog" || a == "-r") {
             reflog_mode = true;
         } else if (a == "--help" || a == "-h") {
-            std::println("Usage: git-wip log [--pretty|-p] [--stat|-s] [--reflog|-r] [-- <file>...]\n");
+            std::println("Usage: git-wip log [-<limit>] [--pretty|-p] [--stat|-s] [--reflog|-r] [-- <file>...]\n");
             //                -                     #
+            std::println("    -<limit>              # number of entries to display");
             std::println("    -p, --pretty          # use pretty oneline log (default full log)");
             std::println("    -s, --stat            # show file changes in log");
             std::println("    -r, --reflog          # invoke reflog (shows historical entries)");
             std::println("    <file>...             # filter on changes to specific file(s)\n");
             return 0;
+        } else if (a[0] == '-' && std::all_of(a.begin()+1, a.end(), [](char ch) { return std::isdigit(ch); })) {
+
+            long value = 0;
+            auto [ptr,ec] = std::from_chars(a.data()+1, a.data() + a.size(), value);
+            if (ec == std::errc{} && ptr == a.data() + a.size() && value > 0) {
+                limit = value;
+            } else {
+                spdlog::error("could not parse log limit from '{}'", a);
+                return 1;
+            }
+
         } else if (!a.empty() && a[0] == '-') {
             spdlog::error("git-wip log: unknown option '{}'", a);
             return 1;
@@ -133,6 +146,7 @@ int LogCmd::run(int argc, char *argv[]) {
     spdlog::debug("log: stop={}", stop_arg);
 
     std::string cmd = "git log";
+    if (limit)  cmd += fmt::format(" -{}", limit);
     if (pretty) cmd += " --graph" + pretty_fmt;
     if (stat)   cmd += " --stat";
     for (const auto &f : files) cmd += " -- " + f;

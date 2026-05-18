@@ -45,7 +45,7 @@ EOF
 
     cmakeFlags = [
         "-DCMAKE_BUILD_TYPE=Release"
-            "-DBUILD_TESTING=OFF"
+        "-DBUILD_TESTING=OFF"
     ];
 
     buildPhase = ''

@@ -1,5 +1,6 @@
 *~
 build/
+build-*/
 .cache/
 .opencode/
 /git-wip
