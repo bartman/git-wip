@@ -22,6 +22,7 @@ endif()
 
 add_executable(git-wip
     color.cpp
+    config.cpp
     main.cpp
     cmd_delete.cpp
     cmd_list.cpp
