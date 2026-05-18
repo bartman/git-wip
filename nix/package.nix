@@ -13,18 +13,18 @@
 
 stdenv.mkDerivation {
     pname = "git-wip";
-    version = "unstable-${self.shortRev or self.dirtyShortRev or "dirty"}";
+    version = "unstable-";
 
-    src = self;
+    src = ./..;
 
-    nativeBuildInputs = with pkgs; [
+    nativeBuildInputs = with stdenv; [
         cmake
             ninja
             pkg-config
             git
     ];
 
-    buildInputs = with pkgs; [
+    buildInputs = with stdenv; [
         libgit2
             libgit2.dev
             spdlog
@@ -35,7 +35,7 @@ stdenv.mkDerivation {
             zlib
     ];
 
-    PKG_CONFIG_PATH = with pkgs; lib.makeSearchPath "lib/pkgconfig" [
+    PKG_CONFIG_PATH = with stdenv; lib.makeSearchPath "lib/pkgconfig" [
         openssl.dev libgit2 pcre2 libssh2 zlib
     ];
 
@@ -66,7 +66,7 @@ stdenv.mkDerivation {
         make install PREFIX=$out
         '';
 
-    meta = with pkgs.lib; {
+    meta = with stdenv.lib; {
         description = "git-wip — Work In Progress branch manager";
         homepage = "https://github.com/bartman/git-wip";
         license = licenses.gpl2Only;
