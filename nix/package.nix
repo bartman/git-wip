@@ -35,6 +35,7 @@ stdenv.mkDerivation {
         mkdir -p build
         ./cmake/GitVersion.sh GIT_WIP_ build/git_wip_version.h
         ls -l build/git_wip_version.h
+        cat build/git_wip_version.h
         '';
 
     cmakeFlags = [
