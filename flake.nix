@@ -10,11 +10,22 @@
         flake-utils.lib.eachDefaultSystem (system:
                 let
                 pkgs = nixpkgs.legacyPackages.${system};
+
+                # Read the canonical version from the committed VERSION file
+                # and combine it with flake-provided metadata to produce a
+                # string of the same shape as cmake/GitVersion.sh:
+                #   {VERSION}-{YYYYMMDD}-g{HASH}[-dirty]
+                baseVersion = pkgs.lib.fileContents ./VERSION;
+                # self.lastModifiedDate is "YYYYMMDDHHMMSS" — take the date.
+                buildDate = builtins.substring 0 8 (self.lastModifiedDate or "00000000");
+                shortHash = self.shortRev or self.dirtyShortRev or "unknown";
+                dirtySuffix = if self ? rev then "" else "-dirty";
+                gitWipVersion = "${baseVersion}-${buildDate}-g${shortHash}${dirtySuffix}";
                 in
                 {
                 packages.default = pkgs.callPackage ./nix/package.nix {
                     inherit pkgs;
-                    version = "unstable-${self.shortRev or self.dirtyShortRev or "dirty"}";
+                    version = gitWipVersion;
                 };
 
                 devShells.default = pkgs.mkShell {
