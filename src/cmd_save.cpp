@@ -48,6 +48,9 @@ int SaveCmd::run(int argc, char *argv[]) {
         } else if (a == "--all" || a == "-a") {
             add_untracked = true;
             add_ignored = true;
+        } else if (a == "--only-tracked" || a == "-t") {
+            add_untracked = false;
+            add_ignored = false;
         } else if (a == "--gpg-sign") {
             gpg_sign = true;
         } else if (a == "--no-gpg-sign") {
@@ -62,6 +65,7 @@ int SaveCmd::run(int argc, char *argv[]) {
             std::println("    -i, --ignored         # enable capture of changes to ignored files");
             std::println("    -I, --no-ignored      # disable capture of changes to ignored files");
             std::println("    -a, --all             # same as --untracked and --ignored");
+            std::println("    -t, --only-tracked    # same as --no-untracked and --no-ignored");
             std::println("    --gpg-sign            # enable signing of commits");
             std::println("    --no-gpg-sign         # disable signing of commits");
             std::println("    <file>...             # filter on changes to specific file(s)\n");
