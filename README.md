@@ -359,7 +359,22 @@ Verify you're ready with:
 $ git wip -h
 ```
 
-**(1)** With [lazy.nvim](https://github.com/folke/lazy.nvim) (Neovim only):
+**(1)** With Neovim builtin `vim.pack` (Neovim v0.12+):
+
+```lua
+vim.pack.add({
+    { src = 'https://github.com/bartman/git-wip' }
+})
+require('git-wip').setup({
+    -- gpg_sign = false,
+    -- background = true,
+    -- untracked = true,
+    -- ignored = false,
+    -- filetypes = { "*" },
+})
+```
+
+**(2)** With [lazy.nvim](https://github.com/folke/lazy.nvim) (Neovim only):
 
 ```lua
 {
@@ -374,13 +389,13 @@ $ git wip -h
 },
 ```
 
-**(2)** With [Vundle](https://github.com/gmarik/Vundle.vim) (Vim only):
+**(3)** With [Vundle](https://github.com/gmarik/Vundle.vim) (Vim only):
 
 ```vim
 Bundle 'bartman/git-wip', {'rtp': 'vim/'}
 ```
 
-**(3)** Copy the plugin directly:
+**(4)** Copy the plugin directly:
 
 Not really recommended (or supported), but if you want to you could copy it to your Neovim plugin directory...
 
@@ -398,7 +413,7 @@ $ cp vim/plugin/git-wip.vim ~/.vim/plugin/
 ```
 and Vim will pick it up from there.
 
-**(4)** Or add an autocommand to your `.vimrc`:
+**(5)** Or add an autocommand to your `.vimrc`:
 
 This bypasses a plugin, just uses the executable.
 
