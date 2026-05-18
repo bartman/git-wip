@@ -1,70 +1,47 @@
 {
-  description = "git-wip — Work In Progress branch manager";
+    description = "git-wip — Work In Progress branch manager";
 
-  inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
-  };
+    inputs = {
+        nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+        flake-utils.url = "github:numtide/flake-utils";
+    };
 
-  outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
-      in
-      {
-        devShells.default = pkgs.mkShell {
-          name = "git-wip-dev";
+    outputs = { self, nixpkgs, flake-utils }:
+        flake-utils.lib.eachDefaultSystem (system:
+                let
+                pkgs = nixpkgs.legacyPackages.${system};
 
-          # Build tools and dependencies
-          # Nix name          ↔  apt name
-          # cmake             ↔  cmake
-          # ninja             ↔  ninja-build
-          # pkg-config        ↔  pkg-config
-          # gnumake           ↔  make
-          # gcc / stdenv      ↔  gcc / g++
-          # clang-tools       ↔  clangd
-          # clang             ↔  clang
-          # libgit2           ↔  libgit2-dev
-          # gtest             ↔  googletest / libgmock-dev / libgtest-dev
-          # git               ↔  git
-          packages = with pkgs; [
-            # build system
-            cmake
-            ninja
-            pkg-config
-            gnumake
+                # Read the canonical version from the committed VERSION file
+                # and combine it with flake-provided metadata to produce a
+                # string of the same shape as cmake/GitVersion.sh:
+                #   {VERSION}-{YYYYMMDD}-g{HASH}[-dirty]
+                baseVersion = pkgs.lib.fileContents ./VERSION;
+                # self.lastModifiedDate is "YYYYMMDDHHMMSS" — take the date.
+                buildDate = builtins.substring 0 8 (self.lastModifiedDate or "00000000");
+                shortHash = self.shortRev or self.dirtyShortRev or "unknown";
+                dirtySuffix = if self ? rev then "" else "-dirty";
+                gitWipVersion = "${baseVersion}-${buildDate}-g${shortHash}${dirtySuffix}";
+                in
+                {
+                packages.default = pkgs.callPackage ./nix/package.nix {
+                    inherit pkgs;
+                    version = gitWipVersion;
+                };
 
-            # compilers
-            gcc
-            clang
-            clang-tools   # provides clangd
-
-            # runtime library (required at link time)
-            libgit2
-
-            # test framework
-            gtest
-
-            # version control (needed by cmake FetchContent and tests)
-            git
-
-            # python is used by test/runner.py
-            python3
-          ];
-
-          # Ensure pkg-config can find libgit2
-          PKG_CONFIG_PATH = "${pkgs.libgit2}/lib/pkgconfig";
-
-          shellHook = ''
-            echo "git-wip dev shell"
-            echo "  compiler:  $(c++ --version | head -1)"
-            echo "  cmake:     $(cmake --version | head -1)"
-            echo "  libgit2:   $(pkg-config --modversion libgit2)"
-            echo ""
-            echo "  build:     make"
-            echo "  test:      make test"
-          '';
-        };
-      }
-    );
+                devShells.default = pkgs.mkShell {
+                    name = "git-wip-dev";
+                    packages = with pkgs; [
+                        cmake ninja pkg-config gnumake
+                            gcc clang clang-tools
+                            libgit2 gtest git python3
+                    ];
+                    PKG_CONFIG_PATH = "${pkgs.libgit2}/lib/pkgconfig";
+                    shellHook = ''
+                        echo "git-wip dev shell ready"
+                        echo "  build:  make"
+                        echo "  test:   make test"
+                        echo "  install (local): make install"
+                        '';
+                };
+                });
 }

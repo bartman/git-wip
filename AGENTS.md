@@ -26,6 +26,150 @@ The Neovim Lua plugin supports the following configuration options (set via `opt
 
 Async execution uses Neovim's `vim.system` with `on_exit` callback for non-blocking saves.
 
+## Versioning
+
+The `git-wip --version` string is generated at build time and embedded in the
+binary as the C string macro `GIT_WIP_VERSION` (defined in
+`build/git_wip_version.h`, consumed in `src/main.cpp`).
+
+### Version string format
+
+```
+{VERSION}-{YYYYMMDD}-g{HASH}[-dirty]
+```
+
+- `VERSION` — contents of the committed `VERSION` file at the top of the
+  source tree (currently `v0.3`).  This is the canonical, human-managed
+  version and is bumped by `tag-new-release.sh`.
+- `YYYYMMDD` — committer date of `HEAD` (for `make`) or
+  `self.lastModifiedDate` truncated to a date (for `nix build`).
+- `HASH` — short hash of `HEAD` / `self.shortRev`.
+- `-dirty` — appended when the working tree has uncommitted changes (`make`
+  path) or when the flake source is dirty (Nix path: `self.rev` absent).
+
+Special fallback for `make` builds with no `.git` directory available:
+
+```
+{VERSION}-unknown
+```
+
+The format intentionally does **not** match `git describe`'s
+`vX.Y-<commits-since-tag>-g<hash>` shape, because `git describe` cannot run
+inside the Nix sandbox (`.git` is stripped from the source tree).  The
+date+hash form is monotonic, encodes the commit, and works identically under
+all three build paths.
+
+### Files involved
+
+| File | Role |
+|---|---|
+| `VERSION` | Source of truth.  One line, e.g. `v0.3`.  Committed. |
+| `tag-new-release.sh` | Bumps `VERSION`, commits, creates annotated tag. |
+| `cmake/GitVersion.sh` | Generates `git_wip_version.h` for `make` builds.  Reads `VERSION`, queries git. |
+| `cmake/GitVersion.cmake` | CMake wrapper around `GitVersion.sh`.  Adds custom command + target `gitversion`. |
+| `src/CMakeLists.txt` | Wires `gitversion` into the `git-wip` executable.  Honours `USE_GIT_WIP_VERSION_H=<path>` to use a pre-generated header (Nix path). |
+| `flake.nix` | Computes the version string from `lib.fileContents ./VERSION`, `self.lastModifiedDate`, and `self.shortRev` / `self.dirtyShortRev`.  Passes it to `nix/package.nix`. |
+| `nix/package.nix` | In `preConfigure`, writes `build/git_wip_version.h` from the injected `version` argument and points CMake at it via `-DUSE_GIT_WIP_VERSION_H=...`. |
+
+### Build paths and what they produce
+
+| Build invocation | Where version comes from | Example output |
+|---|---|---|
+| `make` (Debian / NixOS dev shell) | `cmake/GitVersion.sh` runs `git log -1 --format=%cd` + `git rev-parse --short HEAD` | `v0.3-20260518-g93b99ef` |
+| `make` with no `.git` (extracted tarball) | `cmake/GitVersion.sh` fallback | `v0.3-unknown` |
+| `nix build` (flake) | `flake.nix` computes from `self.*`, passed via `package.nix` `preConfigure` | `v0.3-20260518-g93b99ef` |
+
+All three paths produce byte-identical output for the same clean commit.
+
+### Cutting a release
+
+```
+./tag-new-release.sh v0.4
+```
+
+The script:
+1. Refuses to run on a dirty tree.
+2. Validates `v0.4` is strictly greater (per `sort -V`) than both the current
+   `VERSION` file contents and the most recent git tag.
+3. Writes `v0.4` to `VERSION`.
+4. Commits with message `Release v0.4`.
+5. Creates annotated tag `git tag -a -m v0.4 v0.4`.
+
+After running the script, push commit + tag with `git push --follow-tags`.
+
+### Implementation notes
+
+- **No use of `git describe`.**  The previous scheme used it; the rewrite
+  avoids it because (a) it cannot run in the Nix sandbox, and (b) it is
+  unstable when a tarball is extracted without `.git`.
+- **`self.revCount` is intentionally unused.**  The GitHub flake fetcher
+  (`github:` URL) does not populate it; the date+hash scheme works under
+  both `github:` and `git+https://` fetchers without conditional logic.
+- **Dirty detection in Nix** relies on `self ? rev`.  A dirty flake source
+  sets `dirtyRev`/`dirtyShortRev` but not `rev`, so the check
+  `if self ? rev then "" else "-dirty"` is correct.
+- **`USE_GIT_WIP_VERSION_H`** is a CMake variable, not an env var.  The
+  Nix derivation appends `-DUSE_GIT_WIP_VERSION_H=$PWD/build/git_wip_version.h`
+  to `cmakeFlagsArray` in `preConfigure`.  When set and the file exists,
+  `src/CMakeLists.txt` skips the `GitVersion.sh` invocation entirely.
+
+## Continuous Integration
+
+`.github/workflows/ci.yml` defines three jobs:
+
+### `build` (matrix)
+
+Distro × compiler × build-type matrix.  Runs in distro-native containers on
+the `ubuntu-latest` runner:
+
+| Distro | Compilers | Build types | Static |
+|---|---|---|---|
+| `debian:stable` | gcc, clang | Release, Debug | yes |
+| `ubuntu:24.04`  | gcc, clang | Release, Debug | yes |
+| `fedora:latest` | gcc, clang | Release, Debug | no  |
+| `archlinux:latest` | gcc, clang | Release, Debug | no  |
+
+For each cell: `dependencies.sh` installs deps, `make BUILD=build-so` builds
+dynamic, `make BUILD=build-so test` runs tests; then (only on distros where
+libgit2.a is available) it repeats with `STATIC=1 BUILD=build-a`.  On
+failure, test artifacts from `build-so/` and `build-a/` are uploaded.
+
+### `nix` (single job, no matrix)
+
+Runs on stock `ubuntu-latest` (no container).  Installs Nix via
+`cachix/install-nix-action@v31` with `nix-command` + `flakes` enabled.
+Compiler and dependency versions are pinned by the flake, so a matrix is
+unnecessary.  Steps:
+
+1. **Dev shell make build** — `nix develop --command bash -c 'make && make test'`.
+   Exercises the `cmake/GitVersion.sh` path with the flake's pinned toolchain.
+2. **Flake build** — `nix build --print-build-logs`.  Exercises the
+   `flake.nix` → `package.nix` → `preConfigure` version-injection path.
+3. **Version sanity check** — runs `./result/bin/git-wip --version` and asserts
+   the output starts with `<contents of VERSION>-`.  Catches regressions in
+   either the flake's version computation or `package.nix`'s header generation.
+
+This job is the canonical guard against the three known regressions in the
+Nix path: (a) `git describe` creeping back in, (b) `.git` being needed inside
+the sandbox, (c) `VERSION` not being read.
+
+### `coverage`
+
+Single job on `debian:stable` / gcc / Debug.  Runs `make TYPE=Debug coverage`
+and uploads the resulting `coverage.info` to Codecov.
+
+### Why no `nixos/nix` container
+
+GitHub Actions' `container:` mechanism requires a node-capable image to host
+the runner agent and the JavaScript-based actions (`actions/checkout`,
+`actions/cache`, `actions/upload-artifact`).  The official `nixos/nix` image
+is intentionally minimal and lacks `node` and an FHS layout, breaking those
+actions.  The supported pattern — used by NixOS/nix itself — is to run on
+stock `ubuntu-latest` and install Nix via `cachix/install-nix-action`.
+Functionally this is equivalent to a NixOS container for our purposes
+because the flake's `mkShell` and `mkDerivation` pin their toolchain
+independently of the host distro.
+
 ## Test Infrastructure
 
 ### test/cli/lib.sh

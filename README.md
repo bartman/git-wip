@@ -83,11 +83,15 @@ Equivalent to `git wip save "WIP"`.
 
 ### `git wip [--version | -v | version]`
 
-Show the version string (from `git describe --tags --dirty=-dirty` at build time).
+Show the version string baked in at build time.  Format:
+`{VERSION}-{YYYYMMDD}-g{HASH}[-dirty]`, where `VERSION` comes from the
+committed `VERSION` file, `YYYYMMDD` is the commit date, and `HASH` is the
+short commit hash.  `-dirty` is appended if the working tree had uncommitted
+changes at build time.
 
 ```
 $ git wip --version
-v0.2-83-g95a6648-dirty
+v0.3-20260518-g93b99ef
 ```
 
 ### `git wip save [<message>] [options] [-- <file>...]`
@@ -247,6 +251,65 @@ Or copy the binary manually:
 ```sh
 $ cp build/src/git-wip ~/bin/
 ```
+
+### NixOS
+
+`git-wip` ships a flake (`flake.nix`) and a self-contained package definition
+(`nix/package.nix`).  To install it system-wide on NixOS **without touching
+your existing `flake.nix`**, drop a `git-wip.nix` file next to your
+`configuration.nix` and add it to `imports`.
+
+In `configuration.nix`:
+
+```nix
+imports = [
+  # ...your other imports...
+  ./git-wip.nix
+];
+```
+
+In `git-wip.nix`:
+
+```nix
+{ config, pkgs, lib, ... }:
+
+let
+  # Pin to the most recent release.  Update both `ref` and `rev` when bumping.
+  # `rev` must be the full 40-character commit hash; look it up with:
+  #   git ls-remote https://github.com/bartman/git-wip.git refs/tags/v0.3
+  src = builtins.fetchGit {
+    url = "https://github.com/bartman/git-wip.git";
+    ref = "refs/tags/v0.3";
+    rev = "0000000000000000000000000000000000000000";  # replace with v0.3's full sha
+  };
+
+  # Reproduce the version string shape used by the upstream flake:
+  #   {VERSION}-{YYYYMMDD}-g{HASH}
+  baseVersion = lib.fileContents (src + "/VERSION");
+  buildDate   = builtins.substring 0 8 (src.lastModifiedDate or "00000000");
+  shortHash   = src.shortRev or "unknown";
+  version     = "${baseVersion}-${buildDate}-g${shortHash}";
+
+  git-wip = pkgs.callPackage (src + "/nix/package.nix") {
+    inherit pkgs version;
+  };
+in
+{
+  environment.systemPackages = [ git-wip ];
+}
+```
+
+Apply with `sudo nixos-rebuild switch`, then verify:
+
+```sh
+$ git-wip --version
+v0.3-20260518-g93b99ef
+```
+
+To upgrade to a newer release later, bump `ref` to the new tag (e.g.
+`refs/tags/v0.4`) and replace `rev` with the full hash of that tag's commit.
+Leaving the `rev` value invalid will cause Nix to error out — useful, since
+it forces you to consciously pin each release.
 
 ---
 

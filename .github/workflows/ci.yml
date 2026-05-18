@@ -236,6 +236,51 @@ jobs:
             build-a/Testing/
           retention-days: 7
 
+  nix:
+    name: Nix (dev shell + flake build)
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      - name: Configure git identity (needed by tests that create commits)
+        run: |
+          git config --global user.email "ci@github-actions"
+          git config --global user.name  "GitHub Actions"
+          git config --global init.defaultBranch master
+
+      - name: Build & test inside dev shell (make / make test)
+        run: |
+          nix develop --command bash -c '
+            set -e
+            make
+            make test
+          '
+
+      - name: Build via flake (nix build)
+        run: nix build --print-build-logs
+
+      - name: Verify --version of nix-built binary
+        run: |
+          set -e
+          ./result/bin/git-wip --version
+          # Sanity-check: must start with the contents of the VERSION file.
+          ver="$(./result/bin/git-wip --version)"
+          base="$(cat VERSION)"
+          case "$ver" in
+            "$base"-*) echo "OK: version '$ver' starts with '$base-'" ;;
+            *) echo "FAIL: version '$ver' does not start with '$base-'" >&2; exit 1 ;;
+          esac
+
   coverage:
     name: Coverage (debian:stable / gcc / Debug)
 

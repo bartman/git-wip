@@ -1,0 +1,65 @@
+{ stdenv
+, pkgs
+, cmake
+, ninja
+, pkg-config
+, git
+, libgit2
+, spdlog
+, openssl
+, pcre2
+, libssh2
+, zlib
+, version ? "unstable"
+}:
+
+stdenv.mkDerivation {
+    pname = "git-wip";
+    inherit version;
+
+    src = ./..;
+
+    nativeBuildInputs = [ cmake ninja pkg-config git ];
+
+    buildInputs = [ libgit2 libgit2.dev spdlog openssl openssl.dev pcre2 libssh2 zlib ];
+
+    PKG_CONFIG_PATH = with pkgs; lib.makeSearchPath "lib/pkgconfig" [
+        openssl.dev libgit2 pcre2 libssh2 zlib
+    ];
+
+    postPatch = ''
+        patchShebangs cmake/GitVersion.sh
+        '';
+
+    preConfigure = ''
+        echo "=== Generating git-wip version header for Nix build ==="
+        mkdir -p build
+        cat > build/git_wip_version.h <<'EOF'
+#pragma once
+#define GIT_WIP_VERSION ${builtins.toJSON version}
+EOF
+        ls -l build/git_wip_version.h
+        cat build/git_wip_version.h
+        cmakeFlagsArray+=("-DUSE_GIT_WIP_VERSION_H=$PWD/build/git_wip_version.h")
+        '';
+
+    cmakeFlags = [
+        "-DCMAKE_BUILD_TYPE=Release"
+            "-DBUILD_TESTING=OFF"
+    ];
+
+    buildPhase = ''
+        make -j$NIX_BUILD_CORES
+        '';
+
+    installPhase = ''
+        make install PREFIX=$out
+        '';
+
+    meta = with pkgs.lib; {
+        description = "git-wip — Work In Progress branch manager";
+        homepage = "https://github.com/bartman/git-wip";
+        license = licenses.gpl2Only;
+        platforms = platforms.linux ++ platforms.darwin;
+    };
+}

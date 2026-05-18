@@ -14,13 +14,20 @@ option(WIP_STATIC  "Build a fully static binary"           OFF)
 include(FetchContent)
 include(CheckCXXSourceCompiles)
 
-FetchContent_Declare(
-    spdlog
-    GIT_REPOSITORY https://github.com/gabime/spdlog.git
-    GIT_TAG v1.15.3
-)
+# use spdlog from system if possible
+find_package(spdlog 1.15 QUIET CONFIG)
 
-FetchContent_MakeAvailable(spdlog)
+if(spdlog_FOUND)
+    message(STATUS "Using system spdlog ${spdlog_VERSION}")
+else()
+
+    FetchContent_Declare(
+        spdlog
+        GIT_REPOSITORY https://github.com/gabime/spdlog.git
+        GIT_TAG v1.15.3
+    )
+    FetchContent_MakeAvailable(spdlog)
+endif()
 
 # Code coverage options — applied AFTER FetchContent so that third-party
 # dependencies (spdlog, fmt, …) are NOT instrumented.  Mixing gcov versions
