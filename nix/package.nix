@@ -1,4 +1,5 @@
 { stdenv
+, pkgs
 , cmake
 , ninja
 , pkg-config
@@ -17,34 +18,18 @@ stdenv.mkDerivation {
 
     src = ./..;
 
-    nativeBuildInputs = with stdenv; [
-        cmake
-            ninja
-            pkg-config
-            git
-    ];
+    nativeBuildInputs = [ cmake ninja pkg-config git ];
 
-    buildInputs = with stdenv; [
-        libgit2
-            libgit2.dev
-            spdlog
-            openssl
-            openssl.dev
-            pcre2
-            libssh2
-            zlib
-    ];
+    buildInputs = [ libgit2 libgit2.dev spdlog openssl openssl.dev pcre2 libssh2 zlib ];
 
-    PKG_CONFIG_PATH = with stdenv; lib.makeSearchPath "lib/pkgconfig" [
+    PKG_CONFIG_PATH = with pkgs; lib.makeSearchPath "lib/pkgconfig" [
         openssl.dev libgit2 pcre2 libssh2 zlib
     ];
 
-# Better phase for patching shebangs
     postPatch = ''
         patchShebangs cmake/GitVersion.sh
         '';
 
-# Pre-generate version header
     preConfigure = ''
         echo "=== Generating git-wip version header for Nix build ==="
         mkdir -p build
@@ -66,7 +51,7 @@ stdenv.mkDerivation {
         make install PREFIX=$out
         '';
 
-    meta = with stdenv.lib; {
+    meta = with pkgs.lib; {
         description = "git-wip — Work In Progress branch manager";
         homepage = "https://github.com/bartman/git-wip";
         license = licenses.gpl2Only;

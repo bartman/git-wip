@@ -13,6 +13,7 @@
                 in
                 {
                 packages.default = pkgs.callPackage ./nix/package.nix {
+                    inherit pkgs;
                     #version = "unstable-${self.shortRev or self.dirtyShortRev or "dirty"}";
                 };
 
