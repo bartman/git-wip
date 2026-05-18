@@ -1,4 +1,5 @@
 #include "cmd_save.hpp"
+#include "config.hpp"
 #include "git_guards.hpp"
 #include "git_helpers.hpp"
 #include "string_helpers.hpp"
@@ -13,17 +14,91 @@
 #include <string>
 #include <vector>
 
+// Helper to parse git-wip.save spec into add_untracked/add_ignored flags
+static void parse_save_spec(const std::string &spec, bool &add_untracked, bool &add_ignored) {
+    if (spec == "tracked") {
+        add_untracked = false;
+        add_ignored = false;
+    } else if (spec == "untracked") {
+        add_untracked = true;
+        add_ignored = false;
+    } else if (spec == "ignored") {
+        add_untracked = false;
+        add_ignored = true;
+    } else if (spec == "all") {
+        add_untracked = true;
+        add_ignored = true;
+    } else {
+        spdlog::warn("git-wip.save: unknown value '{}', ignoring", spec);
+    }
+}
+
 int SaveCmd::run(int argc, char *argv[]) {
     // -----------------------------------------------------------------------
-    // 1. Parse arguments
+    // 1. Check for --help early (before opening repo)
+    // -----------------------------------------------------------------------
+    for (int i = 1; i < argc; ++i) {
+        std::string a = argv[i];
+        if (a == "--help" || a == "-h") {
+            std::println("Usage: git-wip save [<message>] [--editor|-e] [--[no-]untracked|-u|-U] [--[no-]ignored|-i|-I] [--[no-]gpg-sign] [-- <file>...]\n");
+            //                -                     #
+            std::println("    <message>             # use this message (defaults to \"WIP\")");
+            std::println("    -e, --editor          # queit when there are no changes (called from editor)");
+            std::println("    -u, --untracked       # enable capture of changes to untracked files");
+            std::println("    -U, --no-untracked    # disable capture of changes to untracked files");
+            std::println("    -i, --ignored         # enable capture of changes to ignored files");
+            std::println("    -I, --no-ignored      # disable capture of changes to ignored files");
+            std::println("    -a, --all             # same as --untracked and --ignored");
+            std::println("    -t, --only-tracked    # same as --no-untracked and --no-ignored");
+            std::println("    --gpg-sign            # enable signing of commits");
+            std::println("    --no-gpg-sign         # disable signing of commits");
+            std::println("    <file>...             # filter on changes to specific file(s)\n");
+            return 0;
+        }
+    }
+
+    // -----------------------------------------------------------------------
+    // 2. Open repository
+    // -----------------------------------------------------------------------
+    GitLibGuard git_lib_guard;
+
+    GitRepoGuard repo_guard;
+    if (git_repository_open_ext(repo_guard.ptr(), ".", 0, nullptr) < 0) {
+        spdlog::error("not a git repository: {}", git_error_str());
+        return 1;
+    }
+    git_repository *repo = repo_guard.get();
+
+    // -----------------------------------------------------------------------
+    // 3. Load defaults from git config
+    //
+    //    [git-wip]
+    //      save = tracked | untracked | ignored | all
+    //      gpg-sign = true | false
     // -----------------------------------------------------------------------
     bool editor_mode   = false;
     bool add_untracked = false;
     bool add_ignored   = false;
-    bool gpg_sign      = false; // TODO: not implemented yet
+    bool gpg_sign      = false;
     std::string message = "WIP";
     std::vector<std::string> files;
 
+    {
+        Config cfg(repo);
+        if (auto spec = cfg.get_string("git-wip.save"); spec) {
+            parse_save_spec(*spec, add_untracked, add_ignored);
+        }
+        if (auto val = cfg.get_bool("git-wip.gpg-sign"); val) {
+            gpg_sign = *val;
+        }
+    }
+
+    spdlog::debug("save: config defaults: untracked={} ignored={} gpg_sign={}",
+                  add_untracked, add_ignored, gpg_sign);
+
+    // -----------------------------------------------------------------------
+    // 4. Parse command line arguments (override config defaults)
+    // -----------------------------------------------------------------------
     std::vector<std::string> args;
     for (int i = 1; i < argc; ++i)
         args.emplace_back(argv[i]);
@@ -48,23 +123,15 @@ int SaveCmd::run(int argc, char *argv[]) {
         } else if (a == "--all" || a == "-a") {
             add_untracked = true;
             add_ignored = true;
+        } else if (a == "--only-tracked" || a == "-t") {
+            add_untracked = false;
+            add_ignored = false;
         } else if (a == "--gpg-sign") {
             gpg_sign = true;
         } else if (a == "--no-gpg-sign") {
             gpg_sign = false;
         } else if (a == "--help" || a == "-h") {
-            std::println("Usage: git-wip save [<message>] [--editor|-e] [--[no-]untracked|-u|-U] [--[no-]ignored|-i|-I] [--[no-]gpg-sign] [-- <file>...]\n");
-            //                -                     #
-            std::println("    <message>             # use this message (defaults to \"WIP\")");
-            std::println("    -e, --editor          # queit when there are no changes (called from editor)");
-            std::println("    -u, --untracked       # enable capture of changes to untracked files");
-            std::println("    -U, --no-untracked    # disable capture of changes to untracked files");
-            std::println("    -i, --ignored         # enable capture of changes to ignored files");
-            std::println("    -I, --no-ignored      # disable capture of changes to ignored files");
-            std::println("    -a, --all             # same as --untracked and --ignored");
-            std::println("    --gpg-sign            # enable signing of commits");
-            std::println("    --no-gpg-sign         # disable signing of commits");
-            std::println("    <file>...             # filter on changes to specific file(s)\n");
+            // Already handled above, but keep for completeness
             return 0;
         } else if (!a.empty() && a[0] == '-') {
             spdlog::error("git-wip save: unknown option '{}'", a);
@@ -77,31 +144,19 @@ int SaveCmd::run(int argc, char *argv[]) {
         }
     }
 
-    spdlog::debug("save: message='{}' editor={} untracked={} ignored={} gpg_sign={} files={}",
+    spdlog::debug("save: final: message='{}' editor={} untracked={} ignored={} gpg_sign={} files={}",
                   message, editor_mode, add_untracked, add_ignored, gpg_sign, files.size());
 
     if (gpg_sign)
-        spdlog::warn("git-wip sign --gpg-sign is not implemented yet");
+        spdlog::warn("git-wip save --gpg-sign is not implemented yet");
 
     // -----------------------------------------------------------------------
-    // 2. Open repository
-    // -----------------------------------------------------------------------
-    GitLibGuard git_lib_guard;
-
-    GitRepoGuard repo_guard;
-    if (git_repository_open_ext(repo_guard.ptr(), ".", 0, nullptr) < 0) {
-        spdlog::error("not a git repository: {}", git_error_str());
-        return 1;
-    }
-    git_repository *repo = repo_guard.get();
-
-    // -----------------------------------------------------------------------
-    // 2b. Normalise file paths to be relative to the workdir root.
+    // 5. Normalise file paths to be relative to the workdir root.
     //
-    //     git_index_add_all() resolves pathspecs against the workdir root,
-    //     but the paths supplied on the command line are relative to the
-    //     current working directory (which may be a subdirectory).  Convert
-    //     each path: cwd/file → absolute → workdir-relative.
+    //    git_index_add_all() resolves pathspecs against the workdir root,
+    //    but the paths supplied on the command line are relative to the
+    //    current working directory (which may be a subdirectory).  Convert
+    //    each path: cwd/file → absolute → workdir-relative.
     // -----------------------------------------------------------------------
     if (!files.empty()) {
         const char *workdir_cstr = git_repository_workdir(repo);
@@ -127,7 +182,7 @@ int SaveCmd::run(int argc, char *argv[]) {
     }
 
     // -----------------------------------------------------------------------
-    // 3. Resolve branch names
+    // 6. Resolve branch names
     // -----------------------------------------------------------------------
     auto bn = resolve_branch_names(repo);
     if (!bn) {
@@ -139,12 +194,12 @@ int SaveCmd::run(int argc, char *argv[]) {
     spdlog::debug("save: work_branch='{}' wip_ref='{}'", bn->work_branch, bn->wip_ref);
 
     // -----------------------------------------------------------------------
-    // 4. Ensure reflog directory exists for the wip branch
+    // 7. Ensure reflog directory exists for the wip branch
     // -----------------------------------------------------------------------
     ensure_reflog_dir(repo, bn->wip_ref);
 
     // -----------------------------------------------------------------------
-    // 5. Resolve work_last
+    // 8. Resolve work_last
     // -----------------------------------------------------------------------
     auto work_last = resolve_oid(repo, bn->work_ref);
     if (!work_last) {
@@ -156,7 +211,7 @@ int SaveCmd::run(int argc, char *argv[]) {
     spdlog::debug("save: work_last={}", oid_to_hex(&*work_last));
 
     // -----------------------------------------------------------------------
-    // 6. Determine wip_parent
+    // 9. Determine wip_parent
     // -----------------------------------------------------------------------
     auto wip_last = resolve_oid(repo, bn->wip_ref); // nullopt if no wip branch yet
 
@@ -173,13 +228,13 @@ int SaveCmd::run(int argc, char *argv[]) {
     spdlog::debug("save: wip_parent={}", oid_to_hex(&*wip_parent));
 
     // -----------------------------------------------------------------------
-    // 7. Build new tree (in-memory; never writes to the on-disk index)
+    // 10. Build new tree (in-memory; never writes to the on-disk index)
     //
-    //    Steps:
-    //      a) Load the parent commit's tree into the repo's in-memory index
-    //      b) Stage changes from the working directory on top
-    //      c) Write the tree object to the ODB
-    //      d) Restore the real on-disk index
+    //     Steps:
+    //       a) Load the parent commit's tree into the repo's in-memory index
+    //       b) Stage changes from the working directory on top
+    //       c) Write the tree object to the ODB
+    //       d) Restore the real on-disk index
     // -----------------------------------------------------------------------
     git_oid new_tree_oid{};
     {
@@ -244,7 +299,7 @@ int SaveCmd::run(int argc, char *argv[]) {
     }
 
     // -----------------------------------------------------------------------
-    // 8. Check for changes
+    // 11. Check for changes
     // -----------------------------------------------------------------------
     {
         GitCommitGuard parent_commit;
@@ -262,7 +317,7 @@ int SaveCmd::run(int argc, char *argv[]) {
     spdlog::debug("save: has changes, creating commit");
 
     // -----------------------------------------------------------------------
-    // 9. Create the WIP commit
+    // 12. Create the WIP commit
     // -----------------------------------------------------------------------
     GitTreeGuard new_tree_obj;
     if (git_tree_lookup(new_tree_obj.ptr(), repo, &new_tree_oid) < 0) {
@@ -295,7 +350,7 @@ int SaveCmd::run(int argc, char *argv[]) {
     spdlog::debug("save: new_wip={}", oid_to_hex(&new_commit_oid));
 
     // -----------------------------------------------------------------------
-    // 10. Update the wip ref
+    // 13. Update the wip ref
     // -----------------------------------------------------------------------
     {
         std::string reflog_msg = "git-wip: " + first_line(message.c_str());

@@ -211,6 +211,38 @@ does not exist).
 
 ---
 
+## Configuration
+
+`git-wip` reads settings from your `.gitconfig` under the `[git-wip]` section.
+These provide defaults that can be overridden by command-line flags.
+
+```ini
+[git-wip]
+    save = untracked    # which files to capture: tracked | untracked | ignored | all
+    gpg-sign = false    # whether to GPG-sign WIP commits
+```
+
+### `git-wip.save`
+
+Controls which files are captured by `git wip save`:
+
+| Value | Description |
+|---|---|
+| `tracked` | Only tracked files (default behaviour) |
+| `untracked` | Tracked files plus untracked files (equivalent to `-u`) |
+| `ignored` | Tracked files plus ignored files (equivalent to `-i`) |
+| `all` | Everything: tracked, untracked, and ignored (equivalent to `-a`) |
+
+Command-line flags (`--untracked`, `--no-untracked`, `--ignored`, `--no-ignored`,
+`--all`, `--only-tracked`) override this setting.
+
+### `git-wip.gpg-sign`
+
+Boolean.  If `true`, WIP commits will be GPG-signed (not yet implemented).
+`--gpg-sign` and `--no-gpg-sign` override this setting.
+
+---
+
 ## Building
 
 Requires: a C++23 compiler, CMake ≥ 3.26, Ninja, and `libgit2-dev`.

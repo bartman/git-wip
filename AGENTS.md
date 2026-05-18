@@ -217,6 +217,7 @@ RUN "$GIT_WIP" save "message with spaces"        # WRONG — splits into tokens
 src/
   main.cpp          # arg dispatch; no-args → save "WIP"
   command.hpp       # abstract Command base class
+  config.hpp/cpp    # generic git config wrapper (libgit2)
   git_guards.hpp    # RAII wrappers for libgit2 handles + git_error_str()
   cmd_save.hpp/cpp  # save command
   cmd_log.hpp/cpp   # log command
@@ -230,6 +231,7 @@ test/cli/
   test_status2.sh   # status after work-branch advance
   test_save_file.sh # save with explicit file arguments
   test_log.sh       # log command tests
+  test_save_config.sh # git config options for save command
   CMakeLists.txt    # registers each test_*.sh with ctest
 ```
 
@@ -404,7 +406,23 @@ The vim plugin runs `git wip -h` to check if git-wip is installed. This should:
 | log | cmd_log.hpp | cmd_log.cpp | **Implemented** — libgit2 range, spawns `git log` |
 | status | cmd_status.hpp | cmd_status.cpp | **Implemented** — libgit2 revwalk, `-l`/`-f` flags |
 | delete | cmd_delete.hpp | cmd_delete.cpp | **Implemented** — delete one/current/cleanup orphaned wip refs |
-| config | — | — | Not implemented |
+
+### config.hpp/cpp — generic git config wrapper
+
+`Config` is a generic wrapper around libgit2's `git_config` API.  It provides
+typed accessors for reading configuration values from `.gitconfig`:
+
+```cpp
+Config cfg(repo);
+auto str_val = cfg.get_string("git-wip.save");   // std::optional<std::string>
+auto bool_val = cfg.get_bool("git-wip.gpg-sign"); // std::optional<bool>
+auto int_val = cfg.get_int("some.key");           // std::optional<int>
+auto i64_val = cfg.get_int64("some.key");         // std::optional<int64_t>
+```
+
+Each accessor returns `std::nullopt` if the key is not found or on error.
+Commands use `Config` to read their specific settings and interpret the values
+themselves.
 
 ### git_guards.hpp — RAII wrappers
 
