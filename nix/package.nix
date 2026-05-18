@@ -10,11 +10,12 @@
 , pcre2
 , libssh2
 , zlib
+, version ? "unstable"
 }:
 
 stdenv.mkDerivation {
     pname = "git-wip";
-    version = "unstable-";
+    inherit version;
 
     src = ./..;
 
@@ -33,15 +34,18 @@ stdenv.mkDerivation {
     preConfigure = ''
         echo "=== Generating git-wip version header for Nix build ==="
         mkdir -p build
-        ./cmake/GitVersion.sh GIT_WIP_ build/git_wip_version.h
+        cat > build/git_wip_version.h <<'EOF'
+#pragma once
+#define GIT_WIP_VERSION ${builtins.toJSON version}
+EOF
         ls -l build/git_wip_version.h
         cat build/git_wip_version.h
+        cmakeFlagsArray+=("-DUSE_GIT_WIP_VERSION_H=$PWD/build/git_wip_version.h")
         '';
 
     cmakeFlags = [
         "-DCMAKE_BUILD_TYPE=Release"
             "-DBUILD_TESTING=OFF"
-            "-DUSE_GIT_WIP_VERSION_H=${placeholder "source"}/build/git_wip_version.h"
     ];
 
     buildPhase = ''

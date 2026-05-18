@@ -1,15 +1,23 @@
 # Generate version header
 set(VERSION_HEADER "")
+set(VERSION_HEADER_DIR "${CMAKE_BINARY_DIR}")
 
 if(DEFINED USE_GIT_WIP_VERSION_H AND EXISTS "${USE_GIT_WIP_VERSION_H}")
     set(VERSION_HEADER "${USE_GIT_WIP_VERSION_H}")
+    get_filename_component(VERSION_HEADER_DIR "${VERSION_HEADER}" DIRECTORY)
     message(STATUS "Using pre-generated version header: ${VERSION_HEADER}")
+    add_custom_target(gitversion DEPENDS "${VERSION_HEADER}")
 else()
+    if(DEFINED USE_GIT_WIP_VERSION_H)
+        message(WARNING "USE_GIT_WIP_VERSION_H was set but does not exist: ${USE_GIT_WIP_VERSION_H}")
+    endif()
+
     # Normal development path (local make, dev shell, etc.)
     message(STATUS "No pre-generated header found → generating with GitVersion.sh")
     include(${CMAKE_SOURCE_DIR}/cmake/GitVersion.cmake)
     gitversion_generate(PREFIX GIT_WIP_ OUTPUT ${CMAKE_BINARY_DIR}/git_wip_version.h)
     set(VERSION_HEADER "${CMAKE_BINARY_DIR}/git_wip_version.h")
+    set(VERSION_HEADER_DIR "${CMAKE_BINARY_DIR}")
 endif()
 
 add_executable(git-wip
@@ -25,15 +33,12 @@ add_executable(git-wip
 # Ensure the executable is rebuilt when the version header changes
 add_dependencies(git-wip gitversion)
 
-# make sure the verison is visible to the compiler
-target_include_directories(git-wip PRIVATE ${CMAKE_BINARY_DIR})
-
 install(TARGETS git-wip
     RUNTIME DESTINATION bin
 )
 
 target_include_directories(git-wip PRIVATE
-    ${CMAKE_BINARY_DIR}
+    ${VERSION_HEADER_DIR}
     ${LIBGIT2_INCLUDE_DIRS}
 )
 

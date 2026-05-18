@@ -14,7 +14,7 @@
                 {
                 packages.default = pkgs.callPackage ./nix/package.nix {
                     inherit pkgs;
-                    #version = "unstable-${self.shortRev or self.dirtyShortRev or "dirty"}";
+                    version = "unstable-${self.shortRev or self.dirtyShortRev or "dirty"}";
                 };
 
                 devShells.default = pkgs.mkShell {
