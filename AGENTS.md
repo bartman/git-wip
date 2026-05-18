@@ -113,6 +113,63 @@ After running the script, push commit + tag with `git push --follow-tags`.
   to `cmakeFlagsArray` in `preConfigure`.  When set and the file exists,
   `src/CMakeLists.txt` skips the `GitVersion.sh` invocation entirely.
 
+## Continuous Integration
+
+`.github/workflows/ci.yml` defines three jobs:
+
+### `build` (matrix)
+
+Distro × compiler × build-type matrix.  Runs in distro-native containers on
+the `ubuntu-latest` runner:
+
+| Distro | Compilers | Build types | Static |
+|---|---|---|---|
+| `debian:stable` | gcc, clang | Release, Debug | yes |
+| `ubuntu:24.04`  | gcc, clang | Release, Debug | yes |
+| `fedora:latest` | gcc, clang | Release, Debug | no  |
+| `archlinux:latest` | gcc, clang | Release, Debug | no  |
+
+For each cell: `dependencies.sh` installs deps, `make BUILD=build-so` builds
+dynamic, `make BUILD=build-so test` runs tests; then (only on distros where
+libgit2.a is available) it repeats with `STATIC=1 BUILD=build-a`.  On
+failure, test artifacts from `build-so/` and `build-a/` are uploaded.
+
+### `nix` (single job, no matrix)
+
+Runs on stock `ubuntu-latest` (no container).  Installs Nix via
+`cachix/install-nix-action@v31` with `nix-command` + `flakes` enabled.
+Compiler and dependency versions are pinned by the flake, so a matrix is
+unnecessary.  Steps:
+
+1. **Dev shell make build** — `nix develop --command bash -c 'make && make test'`.
+   Exercises the `cmake/GitVersion.sh` path with the flake's pinned toolchain.
+2. **Flake build** — `nix build --print-build-logs`.  Exercises the
+   `flake.nix` → `package.nix` → `preConfigure` version-injection path.
+3. **Version sanity check** — runs `./result/bin/git-wip --version` and asserts
+   the output starts with `<contents of VERSION>-`.  Catches regressions in
+   either the flake's version computation or `package.nix`'s header generation.
+
+This job is the canonical guard against the three known regressions in the
+Nix path: (a) `git describe` creeping back in, (b) `.git` being needed inside
+the sandbox, (c) `VERSION` not being read.
+
+### `coverage`
+
+Single job on `debian:stable` / gcc / Debug.  Runs `make TYPE=Debug coverage`
+and uploads the resulting `coverage.info` to Codecov.
+
+### Why no `nixos/nix` container
+
+GitHub Actions' `container:` mechanism requires a node-capable image to host
+the runner agent and the JavaScript-based actions (`actions/checkout`,
+`actions/cache`, `actions/upload-artifact`).  The official `nixos/nix` image
+is intentionally minimal and lacks `node` and an FHS layout, breaking those
+actions.  The supported pattern — used by NixOS/nix itself — is to run on
+stock `ubuntu-latest` and install Nix via `cachix/install-nix-action`.
+Functionally this is equivalent to a NixOS container for our purposes
+because the flake's `mkShell` and `mkDerivation` pin their toolchain
+independently of the host distro.
+
 ## Test Infrastructure
 
 ### test/cli/lib.sh
